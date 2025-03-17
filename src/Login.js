@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [role, setRole] = useState('');
-  const navigate = useNavigate();  // Initialize navigate function
+  const navigate = useNavigate();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!email || !password) {
       setError('Both fields are required');
       return;
     }
-  
+
     try {
       const response = await fetch('http://localhost:5000/user/login', {
         method: 'POST',
@@ -24,21 +24,20 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-  
+
       const data = await response.json();
       console.log(data);
-  
+
       if (data.success) {
-        // Set role and other user data
-        setRole(data.role);
-        
-        // Check if firstName and lastName exist in the response
+        // Store teacher's name in local storage
         if (data.firstName && data.lastName) {
-          alert(`Login Successful. Welcome, ${data.firstName} ${data.lastName}. You are a ${data.role}`);
+          localStorage.setItem('teacherName', `${data.firstName} ${data.lastName}`);
         } else {
-          alert(`Login Successful. You are a ${data.role}`);
+          localStorage.setItem('teacherName', 'Teacher'); // Default fallback
         }
-  
+
+        alert(`Login Successful. Welcome, ${data.firstName} ${data.lastName}. You are a ${data.role}`);
+
         // Redirect based on role
         if (data.role === 'Student') {
           navigate('/ProblemSolvingPage');
@@ -46,14 +45,13 @@ const Login = () => {
           navigate('/TeacherDashboard');
         }
       } else {
-        setError(data.message); // Display any error message from the backend
+        setError(data.message);
       }
     } catch (error) {
       setError('Error logging in');
     }
   };
-  
-  
+
   return (
     <div className="login-container">
       <h2>Login</h2>
@@ -80,7 +78,6 @@ const Login = () => {
         <button type="submit">Login</button>
       </form>
 
-      {/* Add a link to the Register page */}
       <div>
         <p>Don't have an account? <a href="/register">Register here</a></p>
       </div>
