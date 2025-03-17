@@ -1,32 +1,53 @@
 import { useState, useEffect } from "react";
 import { Book, Users, Calendar, LayoutDashboard, User, PlusCircle, LogOut } from "lucide-react";
-import { Link, Routes, Route } from "react-router-dom";
+import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { Drawer, Box, CssBaseline, Typography, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import CoursePage from "./CoursePage"; 
 import ReportPage from "./ReportPage"; 
 
 export default function TeacherDashboard() {
   const [stats, setStats] = useState({
-    courses: 3,
-    pendingRequests: 5,
-    upcomingTests: 2,
+    courses: 0,
+    pendingRequests: 2,
+    upcomingTests: 3,
   });
-
+  const [courses, setCourses] = useState([]); // Start with an empty array
   const [teacherName, setTeacherName] = useState("Teacher");
+  const navigate = useNavigate();
 
+  // Fetch the courses from the API
   useEffect(() => {
     const storedName = localStorage.getItem("teacherName");
     if (storedName) {
       setTeacherName(storedName);
     }
-  }, []);
 
-  // Fake course data for demo
-  const courses = [
-    { id: 0, name: "Mathematics 101", students: 12 },
-    { id: 1, name: "Physics 202", students: 15 },
-    { id: 2, name: "Computer Science", students: 18 }
-  ];
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("/course", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,  // Ensure you send the token
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCourses(data); // Set the courses data
+          setStats((prevStats) => ({
+            ...prevStats,
+            courses: data.length, // Update the number of courses
+          }));
+        } else {
+          console.error("Failed to fetch courses");
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+
+    fetchCourses(); // Fetch courses on mount
+  }, []);
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -71,7 +92,8 @@ export default function TeacherDashboard() {
             <ListItemButton
               onClick={() => {
                 localStorage.removeItem("teacherName");
-                window.location.href = "/";
+                localStorage.removeItem("token"); // Remove token on logout
+                navigate("/");  // Redirect to homepage or login page after logout
               }}
             >
               <ListItemIcon sx={{ color: "white" }}>
@@ -99,7 +121,7 @@ export default function TeacherDashboard() {
                 {/* Quick Stats */}
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 3, mt: 3 }}>
                   {[ 
-                    { icon: <Book size={40} className="text-blue-600" />, label: "Courses", value: stats.courses },
+                    { icon: <Book size={40} className="text-blue-600" />, label: "Courses", value: stats.courses }, // Dynamically display courses count
                     { icon: <Users size={40} className="text-green-600" />, label: "Pending Requests", value: stats.pendingRequests },
                     { icon: <Calendar size={40} className="text-red-600" />, label: "Upcoming Tests", value: stats.upcomingTests }
                   ].map((item, index) => (
@@ -135,8 +157,8 @@ export default function TeacherDashboard() {
           {/* Course Page */}
           <Route path="/courses/:courseId" element={<CoursePage />} />
 
-          <Route path="/test/:testName/student/:studentId/report" element={<ReportPage />} />
-
+          {/* Report Page */}
+          <Route path="/courses/:courseId/test/:testName/student/:studentId/report" element={<ReportPage />} />
         </Routes>
       </Box>
     </Box>

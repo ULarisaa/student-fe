@@ -2,8 +2,9 @@ import { useParams } from "react-router-dom";
 import { Typography, Paper } from "@mui/material";
 
 export default function ReportPage() {
-  const { courseId, testName, studentId } = useParams();
-  console.log('report');
+  const { courseId, testName, studentId } = useParams();  // Access the dynamic params
+  console.log(courseId, testName, studentId);  // You can check the params in the console
+
   // Fake data for the report (use real data in practice)
   const studentReport = {
     name: "Alice Johnson",
@@ -14,9 +15,15 @@ export default function ReportPage() {
 
   return (
     <Paper sx={{ p: 3, boxShadow: 4, borderRadius: 3 }}>
-      <Typography variant="h5" fontWeight="bold">{studentReport.name}'s Report for {testName}</Typography>
-      <Typography variant="body1" color="textSecondary" mt={2}>Grade: {studentReport.grade}/10</Typography>
-      <Typography variant="body2" mt={1}>Feedback: {studentReport.feedback}</Typography>
+      <Typography variant="h5" fontWeight="bold">
+        {studentReport.name}'s Report for {testName}
+      </Typography>
+      <Typography variant="body1" color="textSecondary" mt={2}>
+        Grade: {studentReport.grade}/10
+      </Typography>
+      <Typography variant="body2" mt={1}>
+        Feedback: {studentReport.feedback}
+      </Typography>
     </Paper>
   );
 }

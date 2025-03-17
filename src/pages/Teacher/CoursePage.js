@@ -31,10 +31,12 @@ const StudentItem = ({ student, expandedGrades, toggleExpandGrades }) => (
             <IconButton
   sx={{ flex: 1, textAlign: "center", p: 0.5 }}
   component={Link}
-  to={`TeacherDashboard/courses/${student.courseId}/test/${test.name}/student/${student.id}/report`}
+  to={`/TeacherDashboard/courses/${student.courseId}/test/${test.name}/student/${student.id}/report`}  // Correct Link
 >
   <FileText size={22} />
 </IconButton>
+
+
 
           </ListItem>
         ))}
