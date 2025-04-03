@@ -10,12 +10,12 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       setError('Both fields are required');
       return;
     }
-
+  
     try {
       const response = await fetch('http://localhost:5000/user/login', {
         method: 'POST',
@@ -24,23 +24,19 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
+  
       const data = await response.json();
       console.log(data);
-
+  
       if (data.success) {
-        // Store teacher's name in local storage
-        if (data.firstName && data.lastName) {
-          localStorage.setItem('teacherName', `${data.firstName} ${data.lastName}`);
-        } else {
-          localStorage.setItem('teacherName', 'Teacher'); // Default fallback
-        }
-
-        alert(`Login Successful. Welcome, ${data.firstName} ${data.lastName}. You are a ${data.role}`);
-
+        // Store the token in localStorage for future requests
+        localStorage.setItem('token', data.token); // Save the JWT token in localStorage
+        localStorage.setItem('teacherName', `${data.firstName} ${data.lastName}`);
+  
+  
         // Redirect based on role
         if (data.role === 'Student') {
-          navigate('/ProblemSolvingPage');
+          navigate('/StudentDashboard');
         } else if (data.role === 'Teacher') {
           navigate('/TeacherDashboard');
         }
@@ -51,7 +47,7 @@ const Login = () => {
       setError('Error logging in');
     }
   };
-
+  
   return (
     <div className="login-container">
       <h2>Login</h2>

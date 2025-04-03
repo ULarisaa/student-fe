@@ -4,6 +4,7 @@ import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { Drawer, Box, CssBaseline, Typography, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import CoursePage from "./CoursePage"; 
 import ReportPage from "./ReportPage"; 
+import CreateCoursePage from "./CreateCourse"; // Import CreateCoursePage
 
 export default function TeacherDashboard() {
   const [stats, setStats] = useState({
@@ -24,27 +25,33 @@ export default function TeacherDashboard() {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch("/course", {
+        const response = await fetch("http://localhost:5000/course", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`,  // Ensure you send the token
           },
         });
-
+    
+        const responseText = await response.text();
+        console.log("Response Text:", responseText); // Log raw response
+    
         if (response.ok) {
-          const data = await response.json();
+          const data = JSON.parse(responseText); // Parse the response as JSON
           setCourses(data); // Set the courses data
           setStats((prevStats) => ({
             ...prevStats,
             courses: data.length, // Update the number of courses
           }));
         } else {
-          console.error("Failed to fetch courses");
+          console.error("Failed to fetch courses, response status:", response.status);
+          console.log("Response body:", responseText);
         }
       } catch (error) {
         console.error("Error fetching courses:", error);
       }
     };
+    
+    
 
     fetchCourses(); // Fetch courses on mount
   }, []);
@@ -121,7 +128,7 @@ export default function TeacherDashboard() {
                 {/* Quick Stats */}
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 3, mt: 3 }}>
                   {[ 
-                    { icon: <Book size={40} className="text-blue-600" />, label: "Courses", value: stats.courses }, // Dynamically display courses count
+                    { icon: <Book size={40} className="text-blue-600" />, label: "Courses", value: stats.courses },
                     { icon: <Users size={40} className="text-green-600" />, label: "Pending Requests", value: stats.pendingRequests },
                     { icon: <Calendar size={40} className="text-red-600" />, label: "Upcoming Tests", value: stats.upcomingTests }
                   ].map((item, index) => (
@@ -155,12 +162,23 @@ export default function TeacherDashboard() {
           />
 
           {/* Course Page */}
-          <Route path="/courses/:courseId" element={<CoursePage />} />
+          <Route path="/courses/:courseId"
+            element={<CoursePage />} />
 
           {/* Report Page */}
-          <Route path="/courses/:courseId/test/:testName/student/:studentId/report" element={<ReportPage />} />
+          <Route
+            path="/courses/:courseId/test/:testName/student/:studentId/report"
+            element={<ReportPage />}
+          />
+
+          {/* Create Course Page */}
+          <Route
+            path="/create-course"
+            element={<CreateCoursePage />} // Render the CreateCoursePage component
+          />
         </Routes>
       </Box>
     </Box>
   );
 }
+
