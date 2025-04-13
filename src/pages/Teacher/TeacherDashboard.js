@@ -5,6 +5,7 @@ import { Drawer, Box, CssBaseline, Typography, List, ListItem, ListItemButton, L
 import CoursePage from "./CoursePage"; 
 import ReportPage from "./ReportPage"; 
 import CreateCoursePage from "./CreateCourse"; // Import CreateCoursePage
+import CreateTest from "./CreateTest";
 
 export default function TeacherDashboard() {
   const [stats, setStats] = useState({
@@ -67,7 +68,7 @@ export default function TeacherDashboard() {
         sx={{
           width: 240,
           flexShrink: 0,
-          "& .MuiDrawer-paper": { width: 240, boxSizing: "border-box", bgcolor: "grey.900", color: "white", padding: 2 }
+          "& .MuiDrawer-paper": { width: 240, boxSizing: "border-box", bgcolor: "#1976d2", color: "white", padding: 2 }
         }}
       >
         <List>
@@ -150,9 +151,16 @@ export default function TeacherDashboard() {
                       <Box key={course.id} sx={{ p: 3, boxShadow: 3, borderRadius: 2, bgcolor: "white", transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
                         <Typography variant="h6" fontWeight="bold">{course.name}</Typography>
                         <Typography variant="body2" color="textSecondary">{course.students} students enrolled</Typography>
-                        <Button variant="contained" sx={{ mt: 2 }} fullWidth component={Link} to={`/TeacherDashboard/courses/${course.id}`}>
-                          Manage
-                        </Button>
+                        <Button
+  variant="contained"
+  sx={{ mt: 2 }}
+  fullWidth
+  component={Link}
+  to={`/TeacherDashboard/courses/${course.id}?token=${localStorage.getItem("token")}`}
+>
+  Manage
+</Button>
+
                       </Box>
                     ))}
                   </Box>
@@ -164,6 +172,10 @@ export default function TeacherDashboard() {
           {/* Course Page */}
           <Route path="/courses/:courseId"
             element={<CoursePage />} />
+
+              {/* Create test */}
+          <Route path="/courses/:courseId/create-test"
+            element={<CreateTest />} />
 
           {/* Report Page */}
           <Route

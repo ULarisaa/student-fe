@@ -9,6 +9,7 @@ const CreateCourse = () => {
     semester: '',
     isActive: true,
   });
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prevData) => ({
@@ -16,20 +17,19 @@ const CreateCourse = () => {
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
-  
 
   // Handle form submission using fetch instead of axios
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     // Get the token from localStorage
     const token = localStorage.getItem('token');
-  
+
     if (!token) {
       alert('You must be logged in to create a course!');
       return;
     }
-  
+
     try {
       const response = await fetch('http://localhost:5000/course', {
         method: 'POST',
@@ -39,7 +39,7 @@ const CreateCourse = () => {
         },
         body: JSON.stringify(formData),
       });
-  
+
       if (response.ok) {
         const result = await response.json();
         alert(`Course created successfully with ID: ${result.id}`);
@@ -58,11 +58,9 @@ const CreateCourse = () => {
       alert('Failed to create course');
     }
   };
-  
-  
 
   return (
-    <Box sx={{ maxWidth: 800, margin: 'auto', padding: '20px' }}>
+    <Box sx={{ maxWidth: '80%', margin: 'auto', padding: '20px',  borderRadius: 2 }}>
       <Card sx={{ borderRadius: 3, boxShadow: 5 }}>
         <CardContent>
           <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
@@ -82,6 +80,9 @@ const CreateCourse = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
+                  InputLabelProps={{
+                    style: { color: '#1976d2' }, // Make the label text color blue
+                  }}
                   sx={{
                     borderRadius: 2,
                     '& .MuiOutlinedInput-root': {
@@ -104,6 +105,9 @@ const CreateCourse = () => {
                   multiline
                   rows={4}
                   required
+                  InputLabelProps={{
+                    style: { color: '#1976d2' }, // Make the label text color blue
+                  }}
                   sx={{
                     borderRadius: 2,
                     '& .MuiOutlinedInput-root': {
@@ -117,7 +121,7 @@ const CreateCourse = () => {
               {/* Semester Dropdown */}
               <Grid item xs={12}>
                 <FormControl fullWidth>
-                  <InputLabel>Semester</InputLabel>
+                  <InputLabel sx={{ color: '#1976d2' }}>Semester</InputLabel>
                   <Select
                     label="Semester"
                     name="semester"
