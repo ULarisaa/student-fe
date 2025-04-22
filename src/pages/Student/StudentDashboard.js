@@ -4,6 +4,7 @@ import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { Drawer, Box, CssBaseline, Typography, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Button, CircularProgress } from "@mui/material";
 import EnrollPage from "./EnrollPage";
 import CourseDetails from "./CourseDetails";
+import TestPage from "./TestPage";
 
 export default function StudentDashboard() {
   const [stats, setStats] = useState({
@@ -165,7 +166,8 @@ export default function StudentDashboard() {
           />
 
           <Route path="/enroll" element={<EnrollPage />} />
-          <Route path="/StudentDashboard/courses/:courseId" element={<CourseDetails />} />
+          <Route path="/courses/:courseId" element={<CourseDetails />} />
+          <Route path="/test/:testId" element={<TestPage />} />
         </Routes>
       </Box>
     </Box>

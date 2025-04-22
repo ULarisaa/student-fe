@@ -16,16 +16,18 @@ import {
   Box,
   IconButton,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 
-const CreateTest = ({ courseId }) => {
+const CreateTest = () => {
+  const { courseId } = useParams();
   const navigate = useNavigate();
 
   const [testName, setTestName] = useState("");
+  const [testDateTime, setTestDateTime] = useState("");
   const [tasks, setTasks] = useState([
     {
       type: "coding",
@@ -93,6 +95,10 @@ const CreateTest = ({ courseId }) => {
     setTasks([...tasks, newTask]);
   };
 
+  const removeTask = (indexToRemove) => {
+    setTasks((prevTasks) => prevTasks.filter((_, idx) => idx !== indexToRemove));
+  };
+
   const addOption = (taskIndex) => {
     const newTasks = [...tasks];
     newTasks[taskIndex].options.push("");
@@ -115,26 +121,38 @@ const CreateTest = ({ courseId }) => {
     setTasks(newTasks);
   };
 
+  const removeExpectedOutput = (taskIndex, outputIndex) => {
+    const newTasks = [...tasks];
+    if (newTasks[taskIndex].expectedOutput.length > 1 && outputIndex !== 0) {
+      newTasks[taskIndex].expectedOutput.splice(outputIndex, 1);
+      setTasks(newTasks);
+    }
+  };
+
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
-
+  
+    // Make sure all required fields are included
     const testData = {
-      name: testName,
-      courseId,
-      overallTimeLimit,
-      tasks,
+      name: testName, // test name
+      courseId, // course ID
+      startTime: testDateTime, // start time
+      duration: overallTimeLimit, // duration of the test
+      questions: tasks, // tasks array, which should be the list of questions
     };
-
+  
     try {
-      const response = await fetch(`http://localhost:5000/course/${courseId}/create-test`, {
+      
+      const response = await fetch(`http://localhost:5000/test/${courseId}/create`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(testData),
+        body: JSON.stringify(testData), // Send test data
+       
       });
-
+  
       if (response.ok) {
         alert("Test created successfully!");
         navigate(`/TeacherDashboard/courses/${courseId}`);
@@ -145,18 +163,11 @@ const CreateTest = ({ courseId }) => {
       console.error("Error creating test:", error);
     }
   };
-
-  const removeExpectedOutput = (taskIndex, outputIndex) => {
-    const newTasks = [...tasks];
-    if (newTasks[taskIndex].expectedOutput.length > 1 && outputIndex !== 0) {
-      newTasks[taskIndex].expectedOutput.splice(outputIndex, 1);
-      setTasks(newTasks);
-    }
-  };
+  
 
   return (
-    <Box sx={{ maxWidth: "80%", margin: "0 auto", padding: "20px",  borderRadius: 2 }}>
-      <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+    <Box sx={{ maxWidth: "80%", margin: "0 auto", padding: "20px", borderRadius: 2 }}>
+      <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: "bold", color: "#1976d2" }}>
         Create New Test
       </Typography>
 
@@ -170,16 +181,43 @@ const CreateTest = ({ courseId }) => {
             required
             sx={{ mb: 2 }}
             InputLabelProps={{ style: { color: "#1976d2" } }}
-            InputProps={{ style: { borderColor: "#1976d2" } }}
+          />
+
+          <TextField
+            label="Date and Time"
+            type="datetime-local"
+            value={testDateTime}
+            onChange={(e) => setTestDateTime(e.target.value)}
+            fullWidth
+            required
+            sx={{ mb: 2 }}
+            InputLabelProps={{ shrink: true, style: { color: "#1976d2" } }}
           />
 
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Number of Tasks</InputLabel>
             <Select
               value={tasks.length}
-              onChange={(e) => setTasks(tasks.slice(0, e.target.value))}
+              onChange={(e) => {
+                const newCount = parseInt(e.target.value);
+                const currentCount = tasks.length;
+
+                if (newCount > currentCount) {
+                  const additionalTasks = Array.from({ length: newCount - currentCount }, () => ({
+                    type: "coding",
+                    question: "",
+                    expectedOutput: [""],
+                    timeLimit: 10,
+                    useCustomTime: false,
+                    options: [],
+                    correctAnswers: [],
+                  }));
+                  setTasks([...tasks, ...additionalTasks]);
+                } else {
+                  setTasks(tasks.slice(0, newCount));
+                }
+              }}
               label="Number of Tasks"
-              sx={{ borderColor: "#1976d2" }}
             >
               {[...Array(10).keys()].map((num) => (
                 <MenuItem key={num + 1} value={num + 1}>
@@ -204,33 +242,58 @@ const CreateTest = ({ courseId }) => {
           )}
 
           <FormControlLabel
-            control={
-              <Switch
-                checked={useCustomTimePerTask}
-                onChange={handleCustomTimeToggle}
-                color="primary"
-              />
-            }
+            control={<Switch checked={useCustomTimePerTask} onChange={handleCustomTimeToggle} color="primary" />}
             label="Use Custom Time Per Task"
           />
         </CardContent>
       </Card>
 
-      {/* Task Cards */}
       {tasks.map((task, index) => (
-        <Card key={index} sx={{ marginBottom: 3, padding: 3, borderRadius: 2, boxShadow: 3 }}>
-          <CardContent>
+        <Card key={index} sx={{ marginBottom: 3, padding: 3, borderRadius: 2, boxShadow: 3, position: "relative" }}>
+          {/* Delete Task Button - placed at the bottom-right corner */}
+          {index !== 0 && (
+    <Box
+      sx={{
+        position: "absolute",
+        bottom: 10, // Position at the bottom of the card
+        left: 10, // Margin from the left
+        right: 10, // Margin from the right
+        display: "flex",
+        justifyContent: "center", // Center the button horizontally
+      }}
+    >
+      <Button
+        onClick={() => removeTask(index)} // Calls removeTask function on click
+        variant="contained"
+        sx={{
+          padding: "8px 16px",
+          fontSize: "1rem",
+          backgroundColor: "#f44336", // Red background color
+          color: "#fff", // White text
+          ":hover": {
+            backgroundColor: "#d32f2f", // Darker red on hover
+            color: "#fff", // Ensure the text stays white on hover
+          },
+        }}
+      >
+        <DeleteIcon sx={{ marginRight: 1 }} />
+        Delete Task
+      </Button>
+    </Box>
+  )}
+  
+   
+        
+          <CardContent sx={{ paddingTop: 4 }}>
             <Typography variant="h6" gutterBottom color="#1976d2">
               Task {index + 1}
             </Typography>
-
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Task Type</InputLabel>
               <Select
                 value={task.type}
                 onChange={(e) => handleTaskTypeChange(index, e.target.value)}
                 label="Task Type"
-                sx={{ borderColor: "#1976d2" }}
               >
                 <MenuItem value="coding">Coding</MenuItem>
                 <MenuItem value="multiple-choice">Multiple Choice</MenuItem>
@@ -250,6 +313,7 @@ const CreateTest = ({ courseId }) => {
               />
             )}
 
+            {/* Coding Task Section */}
             {task.type === "coding" && (
               <>
                 <TextField
@@ -264,61 +328,57 @@ const CreateTest = ({ courseId }) => {
                   InputLabelProps={{ style: { color: "#1976d2" } }}
                 />
 
-                <div>
-                  <Typography variant="subtitle1" color="#1976d2">Expected Output</Typography>
-                  {task.expectedOutput.map((output, outputIndex) => (
-                    <div key={outputIndex} style={{ marginBottom: "10px" }}>
-                      <Grid container alignItems="center" spacing={2}>
-                        <Grid item xs={8}>
-                          <TextField
-                            label={`Expected Output ${outputIndex + 1}`}
-                            value={output}
-                            onChange={(e) => {
-                              const newTasks = [...tasks];
-                              newTasks[index].expectedOutput[outputIndex] = e.target.value;
-                              setTasks(newTasks);
-                            }}
-                            fullWidth
-                            required
-                            multiline
-                            rows={2}
-                            sx={{ mb: 2 }}
-                          />
-                        </Grid>
+                <Typography variant="subtitle1" color="#1976d2">
+                  Expected Output
+                </Typography>
 
-                        <Grid item xs={2} sx={{ display: "flex", justifyContent: "center" }}>
-                          <IconButton
-                            onClick={() => removeExpectedOutput(index, outputIndex)}
-                            color="error"
-                            sx={{
-                              visibility: outputIndex === 0 ? "hidden" : "visible",
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Grid>
-
-                        {task.expectedOutput.length < 5 && outputIndex === task.expectedOutput.length - 1 && (
-                          <Grid item xs={2} sx={{ display: "flex", justifyContent: "center" }}>
-                            <IconButton
-                              onClick={() => {
-                                const newTasks = [...tasks];
-                                newTasks[index].expectedOutput.push("");
-                                setTasks(newTasks);
-                              }}
-                              color="primary"
-                            >
-                              <AddCircleIcon />
-                            </IconButton>
-                          </Grid>
-                        )}
+                {task.expectedOutput.map((output, outputIndex) => (
+                  <Grid container alignItems="center" spacing={2} key={outputIndex}>
+                    <Grid item xs={8}>
+                      <TextField
+                        label={`Expected Output ${outputIndex + 1}`}
+                        value={output}
+                        onChange={(e) => {
+                          const newTasks = [...tasks];
+                          newTasks[index].expectedOutput[outputIndex] = e.target.value;
+                          setTasks(newTasks);
+                        }}
+                        fullWidth
+                        required
+                        multiline
+                        rows={2}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <IconButton
+                        onClick={() => removeExpectedOutput(index, outputIndex)}
+                        color="error"
+                        sx={{ visibility: outputIndex === 0 ? "hidden" : "visible" }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Grid>
+                    {task.expectedOutput.length < 5 && outputIndex === task.expectedOutput.length - 1 && (
+                      <Grid item xs={2}>
+                        <IconButton
+                          onClick={() => {
+                            const newTasks = [...tasks];
+                            newTasks[index].expectedOutput.push("");
+                            setTasks(newTasks);
+                          }}
+                          color="primary"
+                        >
+                          <AddCircleIcon />
+                        </IconButton>
                       </Grid>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </Grid>
+                ))}
               </>
             )}
 
+            {/* Multiple Choice Section */}
             {task.type === "multiple-choice" && (
               <>
                 <TextField
@@ -333,9 +393,12 @@ const CreateTest = ({ courseId }) => {
                   InputLabelProps={{ style: { color: "#1976d2" } }}
                 />
 
-                <Typography variant="subtitle1" color="#1976d2">Options</Typography>
+                <Typography variant="subtitle1" color="#1976d2">
+                  Options
+                </Typography>
+
                 {task.options.map((option, optionIndex) => (
-                  <Grid container alignItems="center" key={optionIndex} sx={{ marginBottom: "10px" }}>
+                  <Grid container alignItems="center" key={optionIndex} sx={{ mb: 1 }}>
                     <Grid item xs={8}>
                       <TextField
                         label={`Option ${optionIndex + 1}`}
@@ -347,22 +410,17 @@ const CreateTest = ({ courseId }) => {
                         }}
                         fullWidth
                         required
-                        sx={{ mb: 2 }}
                       />
                     </Grid>
-
-                    <Grid item xs={2} sx={{ display: "flex", justifyContent: "center" }}>
+                    <Grid item xs={2}>
                       <IconButton
                         onClick={() => removeOption(index, optionIndex)}
                         color="error"
-                        sx={{
-                          visibility: optionIndex === 0 ? "hidden" : "visible",
-                        }}
+                        sx={{ visibility: optionIndex === 0 ? "hidden" : "visible" }}
                       >
                         <DeleteIcon />
                       </IconButton>
                     </Grid>
-
                     <Grid item xs={2}>
                       <IconButton
                         onClick={() => handleCorrectAnswerChange(index, optionIndex)}
@@ -381,7 +439,7 @@ const CreateTest = ({ courseId }) => {
                       color="primary"
                       onClick={() => addOption(index)}
                       startIcon={<AddCircleIcon />}
-                      sx={{ marginTop: "10px" }}
+                      sx={{ mt: 1 }}
                     >
                       Add Option
                     </Button>
@@ -393,22 +451,19 @@ const CreateTest = ({ courseId }) => {
         </Card>
       ))}
 
-      {/* Add Task Button - placed below tasks */}
-      <Box display="flex" justifyContent="center" sx={{ marginBottom: 4 }}>
+      <Box display="flex" justifyContent="center" sx={{ mb: 4 }}>
         <Button
           variant="outlined"
           color="primary"
           onClick={addNewTask}
           startIcon={<AddCircleIcon />}
           sx={{
-            padding: "10px 20px",
+            px: 4,
+            py: 1.5,
             fontSize: "1rem",
-            color: "#1976d2",
             borderColor: "#1976d2",
-            ":hover": {
-              backgroundColor: "#1976d2",
-              color: "#fff",
-            },
+            color: "#1976d2",
+            ":hover": { backgroundColor: "#1976d2", color: "#fff" },
           }}
         >
           Add Task
@@ -420,7 +475,7 @@ const CreateTest = ({ courseId }) => {
           variant="contained"
           color="primary"
           onClick={handleSubmit}
-          sx={{ padding: "10px 20px", fontSize: "1.2rem", backgroundColor: "#1976d2" }}
+          sx={{ px: 5, py: 2, fontSize: "1.2rem", backgroundColor: "#1976d2" }}
         >
           Create Test
         </Button>
