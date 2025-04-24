@@ -32,7 +32,7 @@ const CreateTest = () => {
     {
       type: "coding",
       question: "",
-      expectedOutput: [""],
+      testCases: [{ input: "", output: "" }],
       timeLimit: 10,
       useCustomTime: false,
       options: [],
@@ -42,6 +42,17 @@ const CreateTest = () => {
   const [overallTimeLimit, setOverallTimeLimit] = useState(60);
   const [useCustomTimePerTask, setUseCustomTimePerTask] = useState(false);
 
+  const handleTestCaseChange = (taskIndex, testCaseIndex, field, value) => {
+    const newTasks = [...tasks];
+    const updatedTestCases = [...newTasks[taskIndex].testCases];
+    updatedTestCases[testCaseIndex] = {
+      ...updatedTestCases[testCaseIndex],
+      [field]: value,
+    };
+    newTasks[taskIndex].testCases = updatedTestCases;
+    setTasks(newTasks);
+  };
+  
   const handleTaskTypeChange = (index, type) => {
     const newTasks = [...tasks];
     newTasks[index].type = type;
@@ -84,14 +95,15 @@ const CreateTest = () => {
 
   const addNewTask = () => {
     const newTask = {
-      type: "coding",
+      type: "multiple-choice",
       question: "",
-      expectedOutput: [""],
+      testCases: [{ input: "", output: "" }],
       timeLimit: 10,
       useCustomTime: false,
-      options: [],
-      correctAnswers: [],
+      options: [""], // Initialize with one empty option
+      correctAnswers: [false], // Initialize with one false value (no correct answer selected)
     };
+    
     setTasks([...tasks, newTask]);
   };
 
@@ -99,12 +111,6 @@ const CreateTest = () => {
     setTasks((prevTasks) => prevTasks.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const addOption = (taskIndex) => {
-    const newTasks = [...tasks];
-    newTasks[taskIndex].options.push("");
-    newTasks[taskIndex].correctAnswers.push(false);
-    setTasks(newTasks);
-  };
 
   const removeOption = (taskIndex, optionIndex) => {
     const newTasks = [...tasks];
@@ -115,22 +121,25 @@ const CreateTest = () => {
     }
   };
 
-  const handleCorrectAnswerChange = (taskIndex, optionIndex) => {
+  const addOption = (taskIndex) => {
     const newTasks = [...tasks];
-    newTasks[taskIndex].correctAnswers[optionIndex] = !newTasks[taskIndex].correctAnswers[optionIndex];
+    newTasks[taskIndex].options.push(""); // Add new option
+    newTasks[taskIndex].correctAnswers.push(false); // Add false to correctAnswers
     setTasks(newTasks);
   };
-
-  const removeExpectedOutput = (taskIndex, outputIndex) => {
+  
+  const handleCorrectAnswerChange = (taskIndex, optionIndex) => {
     const newTasks = [...tasks];
-    if (newTasks[taskIndex].expectedOutput.length > 1 && outputIndex !== 0) {
-      newTasks[taskIndex].expectedOutput.splice(outputIndex, 1);
-      setTasks(newTasks);
-    }
+    newTasks[taskIndex].correctAnswers[optionIndex] = !newTasks[taskIndex].correctAnswers[optionIndex]; // Toggle correct answer
+    setTasks(newTasks);
   };
+  
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
+    console.log('Tasks:', tasks);
+
+
   
     // Make sure all required fields are included
     const testData = {
@@ -206,7 +215,7 @@ const CreateTest = () => {
                   const additionalTasks = Array.from({ length: newCount - currentCount }, () => ({
                     type: "coding",
                     question: "",
-                    expectedOutput: [""],
+                    testCases: [{ input: "", output: "" }],
                     timeLimit: 10,
                     useCustomTime: false,
                     options: [],
@@ -328,53 +337,75 @@ const CreateTest = () => {
                   InputLabelProps={{ style: { color: "#1976d2" } }}
                 />
 
-                <Typography variant="subtitle1" color="#1976d2">
-                  Expected Output
-                </Typography>
+<Typography variant="subtitle1" color="#1976d2">
+  Sample Test Cases
+</Typography>
 
-                {task.expectedOutput.map((output, outputIndex) => (
-                  <Grid container alignItems="center" spacing={2} key={outputIndex}>
-                    <Grid item xs={8}>
-                      <TextField
-                        label={`Expected Output ${outputIndex + 1}`}
-                        value={output}
-                        onChange={(e) => {
-                          const newTasks = [...tasks];
-                          newTasks[index].expectedOutput[outputIndex] = e.target.value;
-                          setTasks(newTasks);
-                        }}
-                        fullWidth
-                        required
-                        multiline
-                        rows={2}
-                        sx={{ mb: 2 }}
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <IconButton
-                        onClick={() => removeExpectedOutput(index, outputIndex)}
-                        color="error"
-                        sx={{ visibility: outputIndex === 0 ? "hidden" : "visible" }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Grid>
-                    {task.expectedOutput.length < 5 && outputIndex === task.expectedOutput.length - 1 && (
-                      <Grid item xs={2}>
-                        <IconButton
-                          onClick={() => {
-                            const newTasks = [...tasks];
-                            newTasks[index].expectedOutput.push("");
-                            setTasks(newTasks);
-                          }}
-                          color="primary"
-                        >
-                          <AddCircleIcon />
-                        </IconButton>
-                      </Grid>
-                    )}
-                  </Grid>
-                ))}
+{task.testCases.map((testCase, testCaseIndex) => (
+  <Grid container spacing={2} alignItems="center" key={testCaseIndex} sx={{ mb: 2 }}>
+    <Grid item xs={5}>
+      <TextField
+        label={`Sample Input ${testCaseIndex + 1}`}
+        value={testCase.input}
+        onChange={(e) => {
+          const newTasks = [...tasks];
+          newTasks[index].testCases[testCaseIndex] = {
+            ...newTasks[index].testCases[testCaseIndex],
+            input: e.target.value
+          };
+          setTasks(newTasks);
+        }}
+        fullWidth
+        multiline
+        rows={2}
+      />
+    </Grid>
+    <Grid item xs={5}>
+      <TextField
+        label={`Expected Output ${testCaseIndex + 1}`}
+        value={testCase.output}
+        onChange={(e) => {
+          const newTasks = [...tasks];
+          newTasks[index].testCases[testCaseIndex] = {
+            ...newTasks[index].testCases[testCaseIndex],
+            output: e.target.value
+          };
+          setTasks(newTasks);
+        }}
+        fullWidth
+        multiline
+        rows={2}
+      />
+    </Grid>
+    <Grid item xs={2}>
+      <IconButton
+        onClick={() => {
+          const newTasks = [...tasks];
+          newTasks[index].testCases.splice(testCaseIndex, 1);
+          setTasks(newTasks);
+        }}
+        color="error"
+        sx={{ visibility: testCaseIndex === 0 ? "hidden" : "visible" }}
+      >
+        <DeleteIcon />
+      </IconButton>
+      {testCaseIndex === task.testCases.length - 1 && task.testCases.length < 5 && (
+        <IconButton
+          onClick={() => {
+            const newTasks = [...tasks];
+            newTasks[index].testCases.push({ input: "", output: "" });
+            setTasks(newTasks);
+          }}
+          color="primary"
+        >
+          <AddCircleIcon />
+        </IconButton>
+      )}
+    </Grid>
+  </Grid>
+))}
+
+
               </>
             )}
 
