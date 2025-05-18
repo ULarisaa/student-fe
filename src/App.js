@@ -4,6 +4,7 @@ import Login from "./Login";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard";
 import Register from "./Register";
+import TestPage from "./pages/Student/TestPage";
 
 console.log(TeacherDashboard);
 const App = () => {
@@ -14,6 +15,7 @@ const App = () => {
         <Route path="/StudentDashboard/*" element={<StudentDashboard />} />
         <Route path="/TeacherDashboard/*" element={<TeacherDashboard />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/test/:testId" element={<TestPage />} />
       </Routes>
     </Router>
   );

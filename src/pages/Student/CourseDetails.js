@@ -241,7 +241,7 @@ useEffect(() => {
   const handleTestCountdown = (testStartTime, durationMinutes) => {
     const now = new Date();
     const startTime = new Date(testStartTime);
-    const endTime = new Date(startTime.getTime() + durationMinutes * 60000); // duration in ms
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
   
     const isAccessible = now >= startTime && now <= endTime;
   
@@ -253,14 +253,20 @@ useEffect(() => {
       return { message: "Test is no longer available.", isAccessible: false, isTestExpired: true };
     }
   
-    const timeDiff = startTime - now;
-    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    const diff = startTime - now;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+    let message = "Test will be available in ";
+    if (days > 0) message += `${days} day(s) `;
+    if (hours > 0 || days > 0) message += `${hours} hour(s) `;
+    message += `${minutes} minute(s)`;
   
     return {
-      message: `Test will be available in ${hours} hour(s) ${minutes} minute(s)`,
+      message: message.trim(),
       isAccessible: false,
-      isTestExpired: false
+      isTestExpired: false,
     };
   };
   
@@ -319,7 +325,7 @@ useEffect(() => {
   const navigate = useNavigate();
 
 const handleTakeTest = (testId) => {
-  navigate(`/StudentDashboard/test/${testId}`);
+  navigate(`/test/${testId}`);
 };
 
 

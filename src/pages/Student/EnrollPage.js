@@ -1,9 +1,24 @@
 import { useState, useEffect } from "react";
-import { Button, Box, Typography, CircularProgress, Alert, TextField, MenuItem, FormControl, InputLabel, Select } from "@mui/material";
+import {
+  Button,
+  Box,
+  Typography,
+  CircularProgress,
+  Chip,
+  Stack,
+  Divider,
+  TextField,
+  MenuItem,
+  Tooltip
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import CancelIcon from "@mui/icons-material/Cancel";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useNavigate } from "react-router-dom";
 
 export default function EnrollPage() {
-  const [availableCourses, setAvailableCourses] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,20 +27,20 @@ export default function EnrollPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchAvailableCourses = async () => {
+    const fetchEnrollments = async () => {
       try {
-        const response = await fetch("http://localhost:5000/course/available", {
+        const response = await fetch("http://localhost:5000/enroll/status", {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
 
         const responseText = await response.text();
         if (response.ok) {
           const data = JSON.parse(responseText);
-          setAvailableCourses(data);
-          setFilteredCourses(data); // Set all courses initially
+          setEnrollments(data);
+          setFilteredCourses(data);
         } else {
           throw new Error("Failed to fetch courses");
         }
@@ -36,10 +51,25 @@ export default function EnrollPage() {
       }
     };
 
-    fetchAvailableCourses();
+    fetchEnrollments();
   }, []);
 
-  // Filter courses based on search term and semester filter
+  const filterCourses = (searchTerm, semesterFilter) => {
+    let filtered = enrollments;
+
+    if (searchTerm) {
+      filtered = filtered.filter((course) =>
+        course.course_name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (semesterFilter) {
+      filtered = filtered.filter((course) => course.semester === semesterFilter);
+    }
+
+    setFilteredCourses(filtered);
+  };
+
   const handleSearchChange = (event) => {
     const value = event.target.value;
     setSearchTerm(value);
@@ -52,35 +82,13 @@ export default function EnrollPage() {
     filterCourses(searchTerm, value);
   };
 
-  // Filter function that applies both search and semester filter
-  const filterCourses = (searchTerm, semesterFilter) => {
-    let filtered = availableCourses;
-
-    // Filter by search term (course name)
-    if (searchTerm) {
-      filtered = filtered.filter(course =>
-        course.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by semester
-    if (semesterFilter) {
-      filtered = filtered.filter(course =>
-        course.semester === semesterFilter
-      );
-    }
-
-    setFilteredCourses(filtered);
-  };
-
   const enrollInCourse = async (courseId) => {
     try {
-      // Show a loading indicator or disable the button during enrollment
       const response = await fetch("http://localhost:5000/enroll", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ courseId }),
       });
@@ -88,95 +96,242 @@ export default function EnrollPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Enrollment success
         alert("Successfully enrolled in the course!");
-        navigate("/StudentDashboard"); // Redirect to student dashboard after successful enrollment
+        navigate("/StudentDashboard");
       } else {
-        // Handle server-side errors (e.g., already enrolled in the course, invalid courseId, etc.)
         alert("Error enrolling in course: " + data.message);
       }
     } catch (error) {
-      // Catch any other unexpected errors
       alert("Error enrolling in course: " + error.message);
     }
   };
 
+  // Extract unique semesters for filter dropdown
+  const uniqueSemesters = Array.from(
+    new Set(enrollments.map((c) => c.semester))
+  ).sort();
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
+    <Box sx={{ p: 3, bgcolor: "#f9fafb", minHeight: "100vh" }}>
+      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
         Available Courses
       </Typography>
 
-      {/* Error handling */}
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Typography color="error" sx={{ mb: 2, fontWeight: "bold" }}>
+          {error}
+        </Typography>
+      )}
 
-      {/* Search bar */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+      {/* Search and Semester Filter */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 4 }}
+        alignItems="center"
+      >
         <TextField
-          label="Search by Course Name"
+          label="Search by course name"
           variant="outlined"
+          size="small"
           value={searchTerm}
           onChange={handleSearchChange}
-          fullWidth
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': { borderColor: '#1976d2' },
-              '&.Mui-focused fieldset': { borderColor: '#1976d2' },
-            },
-          }}
+          sx={{ flexGrow: 1, minWidth: 200 }}
         />
-        
-        {/* Semester Filter */}
-        <FormControl fullWidth variant="outlined">
-          <InputLabel>Filter by Semester</InputLabel>
-          <Select
-            value={semesterFilter}
-            onChange={handleSemesterFilterChange}
-            label="Filter by Semester"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': { borderColor: '#1976d2' },
-                '&.Mui-focused fieldset': { borderColor: '#1976d2' },
-              },
-            }}
-          >
-            <MenuItem value="">All Semesters</MenuItem>
-            <MenuItem value="First">First Semester</MenuItem>
-            <MenuItem value="Second">Second Semester</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
 
-      {/* Loading indicator */}
+        <TextField
+          select
+          label="Filter by semester"
+          value={semesterFilter}
+          onChange={handleSemesterFilterChange}
+          size="small"
+          sx={{ width: 180 }}
+        >
+          <MenuItem value="">All semesters</MenuItem>
+          {uniqueSemesters.map((semester) => (
+            <MenuItem key={semester} value={semester}>
+              {semester}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
           <CircularProgress />
         </Box>
+      ) : filteredCourses.length === 0 ? (
+        <Typography
+          variant="h6"
+          color="text.secondary"
+          sx={{ mt: 6, textAlign: "center" }}
+        >
+          No courses available matching your filters.
+        </Typography>
       ) : (
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 3, mt: 2 }}>
-          {filteredCourses.length === 0 ? (
-            <Typography variant="h6" color="textSecondary" sx={{ gridColumn: "span 3", textAlign: "center" }}>
-              No courses available matching your filters.
-            </Typography>
-          ) : (
-            filteredCourses.map((course) => (
-              <Box key={course.id} sx={{ p: 3, boxShadow: 3, borderRadius: 2, bgcolor: "white" }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
-                  {course.name}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">Teacher: {course.teacher}</Typography>
-                <Typography variant="body2" color="textSecondary">Semester: {course.semester}</Typography>
-                <Button
-                  variant="contained"
-                  sx={{ mt: 2 }}
-                  fullWidth
-                  onClick={() => enrollInCourse(course.id)}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+              md: "1fr 1fr 1fr",
+            },
+            gap: 2,
+          }}
+        >
+          {filteredCourses.map((course) => {
+            const status = course.status;
+
+            return (
+              <Box
+                key={course.course_id}
+                sx={{
+                  p: 2,
+                  bgcolor: "white",
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  height: 180, // fixed height
+                  transition: "transform 0.15s ease-in-out",
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    boxShadow: 4,
+                  },
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="600"
+                    gutterBottom
+                    sx={{ color: "primary.main" }}
+                  >
+                    {course.course_name}
+                  </Typography>
+
+                  <Divider sx={{ mb: 1 }} />
+
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      Teacher:
+                      <Box
+                        component="span"
+                        sx={{
+                          fontWeight: 600,
+                          ml: 0.5,
+                          color: "text.primary",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          maxWidth: "calc(100% - 60px)",
+                          display: "inline-block",
+                          verticalAlign: "bottom",
+                        }}
+                      >
+                        {course.teacher_first_name} {course.teacher_last_name}
+                      </Box>
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      Semester:
+                      <Box
+                        component="span"
+                        sx={{ fontWeight: 600, ml: 0.5, color: "text.primary" }}
+                      >
+                        {course.semester}
+                      </Box>
+                    </Typography>
+                  </Stack>
+                </Box>
+
+                <Box
+                  sx={{
+                    mt: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 1,
+                  }}
                 >
-                  Enroll
-                </Button>
+                  {(() => {
+                    // Multiline chip labels
+                    const baseChipProps = {
+                      variant: "outlined",
+                      sx: {
+                        fontWeight: "bold",
+                        maxWidth: 220,
+                        "& .MuiChip-label": {
+                          whiteSpace: "normal",
+                          lineHeight: 1.2,
+                          textAlign: "left",
+                        },
+                      },
+                    };
+
+                    switch (status) {
+                      case "approved":
+                        return (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label="Already enrolled"
+                            color="success"
+                            {...baseChipProps}
+                          />
+                        );
+
+                      case "pending":
+                        return (
+                           <Tooltip title="Please contact your supervisor or institution administration if needed.">
+                            <Chip
+                              icon={<HourglassEmptyIcon />}
+                              label="Your request is pending."
+                              color="info"
+                              {...baseChipProps}
+                              sx={{ cursor: "help" }} // show pointer to hint hover
+                            />
+                          </Tooltip>
+                        );
+
+                      case "denied":
+                        return (
+                          <Chip
+                            icon={<CancelIcon />}
+                            label="Enrollment denied — contact administration"
+                            color="error"
+                            {...baseChipProps}
+                          />
+                        );
+
+                      default:
+                        return (
+                          <Chip
+                            icon={<HelpOutlineIcon />}
+                            label="Not enrolled"
+                            color="default"
+                            {...baseChipProps}
+                          />
+                        );
+                    }
+                  })()}
+
+                  {(status === null || status === "denied") && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => enrollInCourse(course.course_id)}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Enroll
+                    </Button>
+                  )}
+                </Box>
               </Box>
-            ))
-          )}
+            );
+          })}
         </Box>
       )}
     </Box>
