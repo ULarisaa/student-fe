@@ -9,13 +9,15 @@ import {
   Divider,
   TextField,
   MenuItem,
-  Tooltip
+  Tooltip, 
+  Alert, Snackbar
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useNavigate } from "react-router-dom";
+import { fetchWithRefresh } from "../../utils/fetchWithRefresh";
 
 export default function EnrollPage() {
   const [enrollments, setEnrollments] = useState([]);
@@ -25,34 +27,40 @@ export default function EnrollPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("");
   const navigate = useNavigate();
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    const fetchEnrollments = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/enroll/status", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
 
-        const responseText = await response.text();
-        if (response.ok) {
-          const data = JSON.parse(responseText);
-          setEnrollments(data);
-          setFilteredCourses(data);
-        } else {
-          throw new Error("Failed to fetch courses");
-        }
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }; 
 
-    fetchEnrollments();
-  }, []);
+
+const fetchEnrollments = async () => {
+  try {
+   const response = await fetchWithRefresh("http://localhost:5000/enroll/status", {
+  method: "GET",
+});
+
+    const responseText = await response.text();
+    if (response.ok) {
+      const data = JSON.parse(responseText);
+      setEnrollments(data);
+      setFilteredCourses(data);
+    } else {
+      throw new Error("Failed to fetch courses");
+    }
+  } catch (error) {
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+useEffect(() => {
+  fetchEnrollments();
+}, []);
+
 
   const filterCourses = (searchTerm, semesterFilter) => {
     let filtered = enrollments;
@@ -82,29 +90,44 @@ export default function EnrollPage() {
     filterCourses(searchTerm, value);
   };
 
-  const enrollInCourse = async (courseId) => {
-    try {
-      const response = await fetch("http://localhost:5000/enroll", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ courseId }),
+const enrollInCourse = async (courseId) => {
+  try {
+    const response = await fetchWithRefresh("http://localhost:5000/enroll", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ courseId }),
+});
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setSnackbar({
+        open: true,
+        message: "Request successfully sent!",
+        severity: "success",
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Successfully enrolled in the course!");
-        navigate("/StudentDashboard");
-      } else {
-        alert("Error enrolling in course: " + data.message);
-      }
-    } catch (error) {
-      alert("Error enrolling in course: " + error.message);
+      // 🔁 Reîncarcă statusul de înscriere (fără reload pagină)
+      await fetchEnrollments(); // sau fetchCourses(), fetchStatus(), etc.
+    } else {
+      setSnackbar({
+        open: true,
+        message: data.message || "Enrollment failed",
+        severity: "error",
+      });
     }
-  };
+  } catch (error) {
+    setSnackbar({
+      open: true,
+      message: error.message || "Something went wrong",
+      severity: "error",
+    });
+  }
+};
+
+
 
   // Extract unique semesters for filter dropdown
   const uniqueSemesters = Array.from(
@@ -318,22 +341,34 @@ export default function EnrollPage() {
                     }
                   })()}
 
-                  {(status === null || status === "denied") && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => enrollInCourse(course.course_id)}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Enroll
-                    </Button>
-                  )}
+                 {(status === null || status === "denied") && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => enrollInCourse(course.course_id)}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Request Enroll
+                  </Button>
+                )}
+
                 </Box>
               </Box>
             );
           })}
         </Box>
       )}
+      <Snackbar
+              open={snackbar.open}
+              autoHideDuration={6000}
+              onClose={handleCloseSnackbar}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
     </Box>
+    
   );
 }

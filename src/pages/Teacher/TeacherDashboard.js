@@ -1,11 +1,29 @@
 import { useState, useEffect } from "react";
 import { Book, Users, Calendar, LayoutDashboard, User, PlusCircle, LogOut } from "lucide-react";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
-import { Drawer, Box, CssBaseline, Typography, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
+import {
+  Drawer,
+  Box,
+  CssBaseline,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Button,
+} from "@mui/material";
+
+import logo from "../../assets/logo.png"; // import your logo here
+
 import CoursePage from "./CoursePage"; 
 import ReportPage from "./ReportPage"; 
-import CreateCoursePage from "./CreateCourse"; // Import CreateCoursePage
-import CreateTest from "./CreateTest";
+import CreateCoursePage from "./CreateCoursePage";
+import CreateTest from "./CreateTestPage";
+import CreateAssignment from "./CreateAssignmentsPage";
+import GradeAssignmentPage from "./GradeAssignmentPage";
+import TeacherProfile from "./TeacherProfile";
+import { fetchWithRefresh } from "../../utils/fetchWithRefresh";
 
 export default function TeacherDashboard() {
   const [stats, setStats] = useState({
@@ -13,104 +31,146 @@ export default function TeacherDashboard() {
     pendingRequests: 2,
     upcomingTests: 3,
   });
-  const [courses, setCourses] = useState([]); // Start with an empty array
+  const [courses, setCourses] = useState([]);
   const [teacherName, setTeacherName] = useState("Teacher");
   const navigate = useNavigate();
 
-  // Fetch the courses from the API
   useEffect(() => {
-    const storedName = localStorage.getItem("teacherName");
+    const storedName = localStorage.getItem("Name");
     if (storedName) {
       setTeacherName(storedName);
     }
 
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/course", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,  // Ensure you send the token
-          },
-        });
-    
-        const responseText = await response.text();
-        console.log("Response Text:", responseText); // Log raw response
-    
-        if (response.ok) {
-          const data = JSON.parse(responseText); // Parse the response as JSON
-          setCourses(data); // Set the courses data
-          setStats((prevStats) => ({
-            ...prevStats,
-            courses: data.length, // Update the number of courses
-          }));
-        } else {
-          console.error("Failed to fetch courses, response status:", response.status);
-          console.log("Response body:", responseText);
-        }
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-      }
-    };
-    
-    
+  const fetchCourses = async () => {
+  try {
+    const response = await fetchWithRefresh("http://localhost:5000/course");
 
-    fetchCourses(); // Fetch courses on mount
+    const responseText = await response.text();
+    if (response.ok) {
+      const data = JSON.parse(responseText);
+
+      const totalPendingRequests = data.reduce(
+        (sum, course) => sum + parseInt(course.pending_count || 0),
+        0
+      );
+
+      setCourses(data);
+      setStats((prevStats) => ({
+        ...prevStats,
+        courses: data.length,
+        pendingRequests: totalPendingRequests,
+      }));
+    } else {
+      console.error("Failed to fetch courses, response status:", response.status);
+      console.log("Response body:", responseText);
+    }
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+  }
+};
+
+
+    fetchCourses();
   }, []);
 
+const handleLogout = async () => {
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  try {
+    await fetchWithRefresh("http://localhost:5000/user/logout", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+      credentials: "include",
+    });
+  } catch (err) {
+    console.error("Logout failed", err);
+  } finally {
+    localStorage.clear(); // curăță toate datele din localStorage
+    setTeacherName("Teacher"); // resetează starea locală
+    navigate("/", { replace: true }); // navighează la pagina principală
+  }
+};
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", height: "100vh" }}>
       <CssBaseline />
 
-      {/* Sidebar */}
       <Drawer
         variant="permanent"
         anchor="left"
         sx={{
           width: 240,
           flexShrink: 0,
-          "& .MuiDrawer-paper": { width: 240, boxSizing: "border-box", bgcolor: "#1976d2", color: "white", padding: 2 }
+          "& .MuiDrawer-paper": {
+            width: 240,
+            boxSizing: "border-box",
+            bgcolor: "#1976d2",
+            color: "white",
+            padding: 2,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          },
         }}
       >
-        <List>
-          {/* Profile Section */}
-          <ListItem disablePadding>
-            <ListItemButton>
-              <ListItemIcon sx={{ color: "white" }}>
-                <User size={20} />
-              </ListItemIcon>
-              <ListItemText primary="Profile" />
-            </ListItemButton>
-          </ListItem>
-
-          {/* Menu Items */}
-          {[ 
-            { text: "Dashboard", link: "/TeacherDashboard", icon: <LayoutDashboard size={20} /> },
-            { text: "Create Course", link: "/TeacherDashboard/create-course", icon: <PlusCircle size={20} /> }
-          ].map((item, index) => (
-            <ListItem key={index} disablePadding>
-              <ListItemButton component={Link} to={item.link}>
-                <ListItemIcon sx={{ color: "white" }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-
-          {/* Logout Button */}
-          <ListItem disablePadding sx={{ mt: 2 }}>
-            <ListItemButton
-              onClick={() => {
-                localStorage.removeItem("teacherName");
-                localStorage.removeItem("token"); // Remove token on logout
-                navigate("/");  // Redirect to homepage or login page after logout
+        {/* Top part: logo + menu */}
+        <Box>
+          <Box
+            sx={{
+              mb: 3,
+              mx: "auto",
+              bgcolor: "white",
+              p: 1,
+              borderRadius: "50%",
+              width: 120,
+              height: 120,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                maxWidth: "80%",
+                maxHeight: "80%",
+                objectFit: "contain",
+                borderRadius: "50%",
               }}
-            >
-              <ListItemIcon sx={{ color: "white" }}>
-                <LogOut size={20} />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItemButton>
-          </ListItem>
-        </List>
+            />
+          </Box>
+
+          <List>
+           
+
+            {/* Menu Items */}
+            {[
+               { text: "Profile", link: "/TeacherDashboard/profile", icon: <User size={20} /> },
+              { text: "Dashboard", link: "/TeacherDashboard", icon: <LayoutDashboard size={20} /> },
+              { text: "Create Course", link: "/TeacherDashboard/create-course", icon: <PlusCircle size={20} /> },
+            ].map((item, index) => (
+              <ListItem key={index} disablePadding>
+                <ListItemButton component={Link} to={item.link}>
+                  <ListItemIcon sx={{ color: "white" }}>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+
+         <Box>
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={handleLogout}>
+            <ListItemIcon sx={{ color: 'white' }}>
+              <LogOut size={20} />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </Box>
       </Drawer>
 
       {/* Main Content */}
@@ -121,23 +181,44 @@ export default function TeacherDashboard() {
             path="/"
             element={
               <>
-                <Typography variant="h4" fontWeight="bold">Welcome, {teacherName}!</Typography>
-                <Typography variant="body1" color="textSecondary" mt={1}>
-                  Here's an overview of your courses and activities.
+                <Typography variant="h4" fontWeight="bold">
+                  Welcome, {teacherName}!
                 </Typography>
 
                 {/* Quick Stats */}
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 3, mt: 3 }}>
-                  {[ 
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" },
+                    gap: 3,
+                    mt: 3,
+                  }}
+                >
+                  {[
                     { icon: <Book size={40} className="text-blue-600" />, label: "Courses", value: stats.courses },
                     { icon: <Users size={40} className="text-green-600" />, label: "Pending Requests", value: stats.pendingRequests },
-                    { icon: <Calendar size={40} className="text-red-600" />, label: "Upcoming Tests", value: stats.upcomingTests }
+                    { icon: <Calendar size={40} className="text-red-600" />, label: "Upcoming Tests", value: stats.upcomingTests },
                   ].map((item, index) => (
-                    <Box key={index} sx={{ p: 3, boxShadow: 3, borderRadius: 2, display: "flex", alignItems: "center", gap: 2, bgcolor: "white" }}>
+                    <Box
+                      key={index}
+                      sx={{
+                        p: 3,
+                        boxShadow: 3,
+                        borderRadius: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        bgcolor: "white",
+                      }}
+                    >
                       {item.icon}
                       <div>
-                        <Typography variant="h6" fontWeight="bold">{item.value}</Typography>
-                        <Typography variant="body2" color="textSecondary">{item.label}</Typography>
+                        <Typography variant="h6" fontWeight="bold">
+                          {item.value}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {item.label}
+                        </Typography>
                       </div>
                     </Box>
                   ))}
@@ -145,53 +226,82 @@ export default function TeacherDashboard() {
 
                 {/* Courses Overview */}
                 <Box mt={5}>
-                  <Typography variant="h5" fontWeight="bold">Your Courses</Typography>
-                  <Box sx={{ mt: 2, display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 3 }}>
-                    {courses.map((course) => (
-                      <Box key={course.id} sx={{ p: 3, boxShadow: 3, borderRadius: 2, bgcolor: "white", transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
-                        <Typography variant="h6" fontWeight="bold">{course.name}</Typography>
-                        <Typography variant="body2" color="textSecondary">{course.students} students enrolled</Typography>
-                        <Button
-  variant="contained"
-  sx={{ mt: 2 }}
-  fullWidth
-  component={Link}
-  to={`/TeacherDashboard/courses/${course.id}?token=${localStorage.getItem("token")}`}
->
-  Manage
-</Button>
+                  <Typography variant="h5" fontWeight="bold">
+                    Your Courses
+                  </Typography>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" },
+                      gap: 3,
+                    }}
+                  >
+             {courses.map((course) => (
+  <Box
+    key={course.id}
+    sx={{
+      p: 3,
+      boxShadow: 3,
+      borderRadius: 2,
+      bgcolor: "white",
+      transition: "0.3s",
+      "&:hover": { boxShadow: 6 },
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      minHeight: 170,
+    }}
+  >
+    <Typography variant="h6" fontWeight="bold" mb={1}>
+      {course.name}
+    </Typography>
 
-                      </Box>
-                    ))}
+    <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Users size={18} color="#4caf50" />
+        <Typography variant="body2" fontWeight="medium">
+          {course.enrolled_count} enrolled
+        </Typography>
+      </Box>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <User size={18} color="#ff9800" />
+        <Typography variant="body2" fontWeight="medium">
+          {course.pending_count} pending
+        </Typography>
+      </Box>
+    </Box>
+
+    <Button
+      variant="contained"
+      sx={{ mt: 3 }}
+      fullWidth
+      component={Link}
+      to={`/TeacherDashboard/courses/${course.id}`}
+    >
+      Manage
+    </Button>
+  </Box>
+))}
+
+
                   </Box>
                 </Box>
               </>
             }
           />
 
-          {/* Course Page */}
-          <Route path="/courses/:courseId"
-            element={<CoursePage />} />
+          {/* Other routes */}
+         <Route path="/profile" element={<TeacherProfile />} />
+          <Route path="/courses/:courseId" element={<CoursePage />} />
+          <Route path="/courses/:courseId/create-test" element={<CreateTest />} />
+          <Route path="/courses/:courseId/create-assignment" element={<CreateAssignment />} />
+          <Route path="/test/:testId/student/:studentId/report" element={<ReportPage />} />
+          <Route path="/create-course" element={<CreateCoursePage />} />
+          <Route path="/assignment/:assignmentId/submission/:studentId" element={<GradeAssignmentPage />} />
 
-              {/* Create test */}
-          <Route path="/courses/:courseId/create-test"
-            element={<CreateTest />} />
-            
-
-          {/* Report Page */}
-          <Route
-            path="/courses/:courseId/test/:testName/student/:studentId/report"
-            element={<ReportPage />}
-          />
-
-          {/* Create Course Page */}
-          <Route
-            path="/create-course"
-            element={<CreateCoursePage />} // Render the CreateCoursePage component
-          />
         </Routes>
       </Box>
     </Box>
   );
 }
-

@@ -1,338 +1,750 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Typography, Paper, Box, Button, Divider, Slider, TextField, CircularProgress, Stepper, Step, StepLabel } from "@mui/material";
+import {
+  Typography,
+  Paper,
+  Box,
+  Button,
+  Divider,
+  CircularProgress,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  Slider,
+  InputAdornment,
+  Table, TableRow, 
+  TableCell, TableHead, 
+  TableBody
+} from "@mui/material";
+import ContentPasteOffIcon from '@mui/icons-material/ContentPasteOff';
+import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import MouseIcon from '@mui/icons-material/Mouse';
 import MonacoEditor from "@monaco-editor/react";
+import { Snackbar, Alert } from '@mui/material';
+import CodeReplay from "../../components/CodeReplay";
+import renderTaskWithCode from "../../components/RenderTaskWithCode";
+import { fetchWithRefresh } from "../../utils/fetchWithRefresh";
+
 
 export default function ReportPage() {
-  const { courseId, testName, studentId } = useParams();
+  const { courseId, testName, studentId, testId } = useParams();
 
-  const initialReport = {
-    name: "Alice Johnson",
-    testName,
-    questions: [
-      {
-        id: 1,
-        questionText: "Write a function to sum two numbers",
-        grade: 8,
-        feedback: "Good work, but could optimize the function",
-        codeSnapshot: [
-          { timestamp: "00:05", code: "function sum(a, b) {\n" },
-          { timestamp: "00:10", code: "function sum(a, b) {\n  return a + b;\n" },
-        ],
-        antiCheatingMetrics: {
-          typingSpeed: "40 WPM",
-          copyPasteEvents: 1,
-          escKeyPresses: 0,
-          idleTimeBeforeTyping: "20s",
-        },
-      },
-      {
-        id: 2,
-        questionText: "Write a function to find the largest number in an array",
-        grade: 7,
-        feedback: "Needs improvement, the edge case is not handled",
-        codeSnapshot: [
-          { timestamp: "00:05", code: "function findLargest(arr) {\n" },
-          { timestamp: "00:10", code: "function findLargest(arr) {\n  return Math.max(...arr);\n" },
-        ],
-        antiCheatingMetrics: {
-          typingSpeed: "35 WPM",
-          copyPasteEvents: 2,
-          escKeyPresses: 1,
-          idleTimeBeforeTyping: "15s",
-        },
-      },
-    ],
-    metrics: {
-      typingSpeed: "40 WPM",
-      copyPasteEvents: 1,
-      escKeyPresses: 1,
-      idleTimeBeforeTyping: "20s",
-    },
-  };
-
+  const [questions, setQuestions] = useState([]);
+  const [submission, setSubmission] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [savedGrades, setSavedGrades] = useState({});
+  const [testDetails, setTestDetails] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [currentCodeIndex, setCurrentCodeIndex] = useState(0); // Track the index of the code snapshots
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1000); // Default speed of 1000ms (1 second per snapshot)
-  const [loading, setLoading] = useState(false); // Loading state for save button
-  const [questions, setQuestions] = useState(initialReport.questions);
-  const [savedGrades, setSavedGrades] = useState({}); // State for grade and feedback for each question
-  const [navigationHistory, setNavigationHistory] = useState([  // Hardcoded navigation events
-    { timestamp: "12:00 PM", action: "Navigated to Question 1" },
-    { timestamp: "12:05 PM", action: "Navigated to Question 2" },
-    { timestamp: "12:10 PM", action: "Navigated to Question 1" },
-    { timestamp: "12:20 PM", action: "Copy/Paste Attempt" },
-    { timestamp: "12:25 PM", action: "Auto-submitted [ESC]" },
-  ]);
-  const activeStep = 0;
+  const [speed, setSpeed] = useState(1000);
+  const [currentCodeIndex, setCurrentCodeIndex] = useState(0);
+  const [loadingAnswers, setLoadingAnswers] = useState(true);
+  const [loadingSave, setLoadingSave] = useState(false);
+const [gradeErrors, setGradeErrors] = useState({});
+const [grades, setGrades] = useState({});
+const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+const [initialGrades, setInitialGrades] = useState({});
+
 
 
   useEffect(() => {
-    if (playing && currentCodeIndex < currentQuestion.codeSnapshot.length - 1) {
-      const timeout = setTimeout(() => {
-        setCurrentCodeIndex(currentCodeIndex + 1);
-      }, speed);
-      return () => clearTimeout(timeout);
-    }
-  }, [currentCodeIndex, playing, speed]);
+    if (!testId) return;
+    async function fetchTestDetails() {
+  try {
+    const res = await fetchWithRefresh(`http://localhost:5000/test/${testId}`);
+    if (!res.ok) throw new Error("Failed to fetch test details");
+    const data = await res.json();
+    setTestDetails(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+    fetchTestDetails();
+  }, [testId]);
 
   useEffect(() => {
-    if (Object.keys(savedGrades).length > 0) {
-      localStorage.setItem("savedGrades", JSON.stringify(savedGrades));
+    if (!testId) return;
+    async function fetchQuestions() {
+      try {
+        const res = await fetchWithRefresh(`http://localhost:5000/test/${testId}/questions`);
+        if (!res.ok) throw new Error("Failed to fetch questions");
+        const data = await res.json();
+        setQuestions(data);
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoadingQuestions(false);
+      }
     }
-  }, [savedGrades]);
+    fetchQuestions();
+  }, [testId]);
+
+
+  useEffect(() => {
+    if (!(testId && studentId)) return;
+    async function fetchSubmission() {
+      try {
+        const res = await fetchWithRefresh(
+          `http://localhost:5000/testSubmissions/submission?test_id=${testId}&user_id=${studentId}`
+        );
+        if (!res.ok) throw new Error("Submission not found");
+        const data = await res.json();
+        setSubmission(data);
+console.log(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchSubmission();
+  }, [testId, studentId]);
+
+  // Load answers for the submission
+  useEffect(() => {
+    if (!submission?.id) return;
+    async function fetchAnswers() {
+      try {
+        const res = await fetchWithRefresh(`http://localhost:5000/testSubmissions/${submission.id}/answers`);
+        if (!res.ok) throw new Error("Failed to fetch answers");
+        const data = await res.json();
+        setAnswers(data);
+        console.log(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingAnswers(false);
+      }
+    }
+    fetchAnswers();
+  }, [submission?.id]);
+
+  const calculateFinalGrade = () => {
+  if (!questionsWithAnswers || !questionsWithAnswers.length) {
+    console.warn("No questions provided.");
+    return 0;
+  }
+
+  const rawStartingGrade = testDetails?.test?.start_grade;
+  const startingGrade = Number.isFinite(parseFloat(rawStartingGrade))
+    ? parseFloat(rawStartingGrade)
+    : 0;
+
+  let sumGrades = 0;
+
+  for (const question of questionsWithAnswers) {
+    const rawManualGrade = grades[question.id];
+    const numericGrade = parseFloat(rawManualGrade);
+
+    if (!isNaN(numericGrade)) {
+      sumGrades += numericGrade;
+    } else {
+      const fallbackGrade = parseFloat(question.expected_grade);
+      if (!isNaN(fallbackGrade)) {
+        sumGrades += fallbackGrade;
+      } else {
+        console.warn(`Grade missing for question ${question.id}`);
+      }
+    }
+  }
+
+  const finalGrade = startingGrade + sumGrades;
+  return Math.max(0, Math.min(10, finalGrade));
+};
+
+
 
   const handleReplay = () => {
-    setCurrentCodeIndex(0); // Start replay from the first snapshot for the current question
-    setPlaying(true); // Start the replay for the current question
+    if (!currentQuestion.codeSnapshot?.length) return;
+    setPlaying(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= currentQuestion.codeSnapshot.length) {
+        clearInterval(interval);
+        setPlaying(false);
+        return;
+      }
+      setCurrentCodeIndex(i);
+      i++;
+    }, speed);
   };
 
   const handlePause = () => {
-    setPlaying(false); // Pause the replay
+    setPlaying(false);
   };
 
-  const handleSpeedChange = (event, newValue) => {
-    setSpeed(newValue); // Update the replay speed
+  const handleSpeedChange = (_, newValue) => {
+    setSpeed(newValue);
   };
+const exitFullscreenCount = submission?.exit_fullscreen_count || 0;
+const mouseLeftWindow = submission?.mouse_leave_count || 0;
 
-  const handleGradeChange = (event, questionIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[questionIndex].grade = event.target.value;
-    setQuestions(newQuestions);
-    saveGradeAndFeedback(questionIndex);
-  };
+const reasons = [];
 
-  const handleFeedbackChange = (event, questionIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[questionIndex].feedback = event.target.value;
-    setQuestions(newQuestions);
-    saveGradeAndFeedback(questionIndex);
-  };
+if (exitFullscreenCount > 0) reasons.push("Exited fullscreen");
+if (mouseLeftWindow > 0) reasons.push("Mouse left window");
 
-  const saveGradeAndFeedback = (questionIndex) => {
-    const currentQuestion = questions[questionIndex];
-    setSavedGrades((prev) => ({
-      ...prev,
-      [currentQuestion.id]: {
-        grade: currentQuestion.grade,
-        feedback: currentQuestion.feedback,
-      },
-    }));
-  };
+const countOnes = reasons.length > 0 ? 1 : 0;
 
-  const handleSave = () => {
-    setLoading(true); // Set loading state to true when save starts
+const autosubmitReason = reasons.length > 0 ? reasons.join(", ") : "unknown";
 
-    // Simulate saving the grade and feedback
-    setTimeout(() => {
-      console.log("Saving data:", savedGrades);
-      setLoading(false);
-      alert("Grade and feedback saved successfully!");
-    }, 2000); // Simulating an API call with a delay of 2 seconds
-  };
 
-  const calculateFinalGrade = () => {
-    const totalGrade = questions.reduce((sum, question) => sum + parseInt(question.grade), 0);
-    return totalGrade / questions.length;
-  };
 
-  const currentQuestion = questions[currentQuestionIndex];
+const questionsWithAnswers = questions.map((q) => {
+  const answer = answers.find((a) => a.question_id === q.id);
+  let parsedAnswer = null;
 
-  if (!currentQuestion) {
-    return <Typography>Loading...</Typography>;
+  if (answer) {
+    try {
+      if (q.category === "coding" && typeof answer.answer === "string") {
+        parsedAnswer = JSON.parse(answer.answer);
+      } else if (typeof answer.answer === "string") {
+        parsedAnswer = JSON.parse(answer.answer);
+      } else {
+        parsedAnswer = answer.answer;
+      }
+    } catch {
+      parsedAnswer = answer.answer;
+    }
   }
 
-  return (
-    <Paper sx={{ p: 3, boxShadow: 4, borderRadius: 3, maxWidth: 1200, margin: "auto" }}>
-      <Typography variant="h4" fontWeight="bold" align="center">
-        {initialReport.name}'s Report for {initialReport.testName}
-      </Typography>
+  return {
+    ...q,
+    studentAnswer: parsedAnswer?.code ?? parsedAnswer ?? "",
+    testsPassed: answer?.tests_passed ?? null,
+    testsTotal: answer?.tests_total ?? null,
+    grade: answer?.grade ?? null,
+    expected_grade: answer?.expected_grade ?? null,
+    testResults: answer?.test_results ?? [],
+    antiCheatingMetrics: {
+      typingSpeed: answer?.typing_speed || null,
+      idleTimeBeforeTyping: answer?.idle_time?.seconds || null,
+      answerTime: answer?.answer_time?.seconds || null,
+    },
+  };
+});
 
-      {/* Final Grade and Save Button at the Top */}
-      <Box mt={3} display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h5" fontWeight="bold">
-          Final Grade: {calculateFinalGrade().toFixed(2)}
+
+
+
+useEffect(() => {
+  if (questionsWithAnswers.length && Object.keys(grades).length === 0) {
+    const initial = {};
+    questionsWithAnswers.forEach((q) => {
+      // Dacă există previous grade, folosim pe aia
+      if (q.grade !== null && q.grade !== undefined) {
+        initial[q.id] = parseFloat(q.grade);
+      } else {
+        // Altfel, folosim expected grade
+        const expected = parseFloat(q.expected_grade);
+        if (!isNaN(expected)) {
+          initial[q.id] = expected;
+        }
+      }
+    });
+    setGrades(initial);
+    setInitialGrades(initial);
+  }
+}, [questionsWithAnswers]);
+
+
+
+const gradesChanged = () => {
+  const keys = Object.keys(initialGrades);
+  for (let key of keys) {
+    const current = parseFloat(grades[key]);
+    const initial = parseFloat(initialGrades[key]);
+    if (isNaN(current) || isNaN(initial)) return true;
+    if (current !== initial) return true;
+  }
+  return false;
+};
+
+
+  const currentQuestion = questionsWithAnswers[currentQuestionIndex] || {};
+  console.log(questionsWithAnswers);
+const questionId = currentQuestion.id;
+
+const handleGradeChange = (event, index) => {
+  const val = event.target.value;
+  const questionId = questionsWithAnswers[index].id;
+  const maxPoints = questionsWithAnswers[index].points || 10;
+
+  let errorsCopy = { ...gradeErrors };
+
+  if (val === "") {
+    delete errorsCopy[questionId];
+    setGrades(prev => ({ ...prev, [questionId]: "" }));
+    setGradeErrors(errorsCopy);
+    return;
+  }
+
+  const numericVal = Number(val);
+
+  if (isNaN(numericVal)) {
+    errorsCopy[questionId] = "Invalid number";
+  } else if (numericVal > maxPoints) {
+    errorsCopy[questionId] = `Grade cannot be greater than ${maxPoints}`;
+  } else if (numericVal < 0) {
+    errorsCopy[questionId] = "Grade cannot be negative";
+  } else {
+    delete errorsCopy[questionId];
+    setGrades(prev => ({ ...prev, [questionId]: numericVal }));
+    setGradeErrors(errorsCopy);
+    return;
+  }
+
+  setGrades(prev => ({ ...prev, [questionId]: val }));
+  setGradeErrors(errorsCopy);
+};
+const handleSave = async () => {
+  setLoadingSave(true);
+  console.log(grades);
+  try {
+   await fetchWithRefresh("http://localhost:5000/testSubmissions/submission/save-grade", {
+  method: "POST",
+  body: JSON.stringify({
+    submissionId: submission.id,
+    grade: calculateFinalGrade(),
+    questionGrades: grades,
+  }),
+});
+
+    setSnackbar({ open: true, message: "Grade has been saved!", severity: "success" });
+
+    // Adaugă refresh cu un mic delay pentru UX
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  } catch (err) {
+    console.error(err);
+    setSnackbar({ open: true, message: "Error saving grade", severity: "error" });
+  } finally {
+    setLoadingSave(false);
+  }
+};
+
+
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  if (loadingQuestions || loadingAnswers) {
+    return (
+      <Box textAlign="center" mt={5}>
+        <CircularProgress />
+        <Typography mt={2}>Loading...</Typography>
+      </Box>
+    );
+  }
+
+  
+
+function getOptionStyles(isSelected, isCorrect) {
+  if (isCorrect && isSelected) {
+    return {
+      bgColor: "#388e3c", // verde închis
+      borderColor: "#1b5e20",
+      icon: "✅",
+      color: "white",
+      fontWeight: "bold",
+    };
+  }
+  if (isCorrect && !isSelected) {
+    return {
+      bgColor: "#81c784", // verde pal
+      borderColor: "#4caf50",
+      icon: null,
+      color: "white",
+      fontWeight: "bold",
+    };
+  }
+  if (!isCorrect && isSelected) {
+    return {
+      bgColor: "#d32f2f", // roșu închis
+      borderColor: "#b71c1c",
+      icon: "❌",
+      color: "black",
+      fontWeight: "normal",
+    };
+  }
+  // Not selected & Wrong
+  return {
+    bgColor: "#e0e0e0",
+    borderColor: "#9e9e9e",
+    icon: null,
+    color: "black",
+    fontWeight: "normal",
+  };
+}
+
+// Componentă pentru legendă, să fie reutilizabilă
+const LegendItem = ({ color, label }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    <Box sx={{ width: 24, height: 24, bgcolor: color, borderRadius: 1 }} />
+    <Typography>{label}</Typography>
+  </Box>
+);
+
+ return (
+  <Paper sx={{ p: 3, boxShadow: 4, borderRadius: 3, maxWidth: 1200, margin: "auto" }}>
+    <Typography variant="h4" fontWeight="bold" align="center">
+  {(submission?.first_name && submission?.last_name)
+    ? `${submission.first_name} ${submission.last_name}`
+    : "Student"}'s report for {testDetails?.test?.name || testName}
+</Typography>
+
+
+    <Box mt={4} display="flex" justifyContent="space-between" alignItems="center">
+      <Box>
+        <Typography variant="body2" color="text.secondary">Starting Grade</Typography>
+        <Typography variant="h6" fontWeight="medium">
+          {testDetails?.test?.start_grade ?? 'N/A'}
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={24} /> : "Save All Grades & Feedback"}
-        </Button>
       </Box>
 
-      <Divider sx={{ my: 3 }} />
+      <Box>
+        <Typography variant="body2" color="text.secondary">Final Grade</Typography>
+        <Typography variant="h6" fontWeight="bold" color="primary">
+          {calculateFinalGrade().toFixed(2)}
+        </Typography>
+      </Box>
 
-      {/* Navigation Timeline (Read-Only Stepper) */}
-      <Box mt={2}>
+  <Button
+  variant="contained"
+  color="primary"
+  onClick={handleSave}
+  disabled={
+    loadingSave ||
+    Object.keys(gradeErrors).length > 0 ||
+    !gradesChanged()
+  }
+  sx={{ minWidth: 150 }}
+>
+  {loadingSave ? <CircularProgress size={24} /> : "Save"}
+</Button>
+
+
+
+    </Box>
+
+   <Divider sx={{ my: 3 }} />
+
+<Typography variant="h6" fontWeight="bold" gutterBottom>
+  Anti-Cheating Metrics Summary for the Test
+</Typography>
+
+<Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2, p: 2 }}>
+  <CardContent>
+    <Grid container spacing={2}>
+      <Grid item xs={12} sm={6}>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <ContentPasteOffIcon color="warning" />
+          <Typography>Copy/Paste Attempts: {submission?.copy_paste_attempts || 0}</Typography>
+        </Box>
+      </Grid>
+
+      {countOnes === 1 ? (
+        <Grid item xs={12}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <ReportGmailerrorredIcon color="error" />
+            <Typography color="error" fontWeight="medium">
+              Test was auto-submitted due to <strong>{autosubmitReason}</strong>.
+            </Typography>
+          </Box>
+        </Grid>
+      ) : (
+        <>
+          <Grid item xs={12} sm={6}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <FullscreenExitIcon color="action" />
+              <Typography>Exit Fullscreen Events: {exitFullscreenCount}</Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <MouseIcon color="action" />
+              <Typography>Mouse Left Window: {mouseLeftWindow}</Typography>
+            </Box>
+          </Grid>
+        </>
+      )}
+    </Grid>
+  </CardContent>
+</Card>
+
+<Divider sx={{ my: 3 }} />
+
+
+    <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+      <Button
+        variant="contained"
+        onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
+        disabled={currentQuestionIndex === 0}
+      >
+        Previous Question
+      </Button>
+      <Button
+        variant="contained"
+        onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+        disabled={currentQuestionIndex === questions.length - 1}
+      >
+        Next Question
+      </Button>
+    </Box>
+
+    <Divider sx={{ my: 3 }} />
+
+  <Box sx={{ p: 3, borderRadius: 3, backgroundColor: "#fff", boxShadow: 2 }}>
+  {/* Task Description */}
+  <Typography variant="h6" fontWeight="bold" gutterBottom>
+    📝 Task {currentQuestionIndex + 1}:
+  </Typography>
+
+    {typeof currentQuestion.task === "string" ? (
+    renderTaskWithCode(currentQuestion.task)
+  ) : (
+   <Typography variant="body1" gutterBottom>
+    {currentQuestion.task}
+  </Typography>
+  )}
+ 
+
+ <Box mt={3} maxWidth={300}>
+  <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+    🧮 Grade for this Question
+  </Typography>
+
+  {/* Afișează valoarea auto-evaluată */}
+  {currentQuestion.expected_grade !== null && (
+    <Typography variant="body2" color="textSecondary" mb={1}>
+      Auto-graded: <strong>{currentQuestion.expected_grade}</strong> / {currentQuestion.points || 10}
+    </Typography>
+  )}
+
+  {/* Afișează nota precedentă, dacă există */}
+  {currentQuestion.grade !== undefined && currentQuestion.grade !== null && (
+    <Typography variant="body2" color="textSecondary" mb={1}>
+      Previous grade: <strong>{currentQuestion.grade}</strong> / {currentQuestion.points || 10}
+    </Typography>
+  )}
+
+  {/* TextField pentru nota nouă, editabilă și inițial goală */}
+  
+<TextField
+  type="number"
+  value={grades[questionId] !== undefined ? grades[questionId] : ""}
+  onChange={(event) => handleGradeChange(event, currentQuestionIndex)}
+  variant="outlined"
+  size="small"
+  fullWidth
+  error={!!gradeErrors[questionId]}
+  helperText={gradeErrors[questionId] || ""}
+  inputProps={{
+    max: currentQuestion.points || 10,
+    min: 0,
+    step: 1,
+    style: { textAlign: "right" },
+  }}
+  InputProps={{
+    endAdornment: <InputAdornment position="end">/ {currentQuestion.points}</InputAdornment>,
+  }}
+/>
+</Box>
+
+  <Divider sx={{ my: 2 }} />
+ <Box mt={2}>
+  <Typography variant="h6" fontWeight="bold" gutterBottom>
+    🔒 Anti-Cheating Metrics
+  </Typography>
+
+  {currentQuestion.category !== "multiple_choice" && (
+    <>
+      <Typography variant="body2">
+        Typing Speed: {(currentQuestion.antiCheatingMetrics?.typingSpeed / 60).toFixed(2)} chars/sec
+      </Typography>
+    </>
+  )}
+  <Typography variant="body2">
+        Idle Time Before Answering: {currentQuestion.antiCheatingMetrics?.idleTimeBeforeTyping} sec
+      </Typography>
+
+  <Typography variant="body2">
+    Answer Time: {currentQuestion.antiCheatingMetrics?.answerTime} sec
+  </Typography>
+</Box>
+
+<Divider sx={{ my: 2 }} />
+
+  {/* Dynamic View by Question Type */}
+  {currentQuestion.category === "coding" && (
+    <>
+      {/* Test Case Summary */}
+     
+       <Typography variant="subtitle1" fontWeight="medium" color="primary" gutterBottom>
+  ✅ Test Case Summary
+</Typography>
+
+<Typography variant="body1" gutterBottom>
+  <strong>Passed Tests:</strong> {currentQuestion.testsPassed} / {currentQuestion.testsTotal}
+</Typography>
+
+<Table size="small" sx={{ borderRadius: 2, overflow: "hidden", mt: 1 }}>
+  <TableHead>
+    <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+      <TableCell><strong>#</strong></TableCell>
+      <TableCell><strong>Input</strong></TableCell>
+      <TableCell><strong>Expected Output</strong></TableCell>
+      <TableCell align="center"><strong>Status</strong></TableCell>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    {(currentQuestion.testResults || []).map((test, index) => {
+      return (
+        <TableRow
+          key={index}
+          sx={{
+            backgroundColor: test.passed ? "#e8f5e9" : "#ffebee",
+            '&:last-child td, &:last-child th': { border: 0 }
+          }}
+        >
+          <TableCell>{index + 1}</TableCell>
+          <TableCell>{test.input}</TableCell>
+          <TableCell>{test.expected}</TableCell>
+          <TableCell align="center" sx={{ fontWeight: 600 }}>
+            {test.passed ? "✅" : "❌"}
+          </TableCell>
+        </TableRow>
+      );
+    })}
+  </TableBody>
+</Table>
+
+
+
+      {/* Submitted Code */}
+      <Card variant="outlined" sx={{ mt: 3, borderRadius: 3, boxShadow: 1, p: 2 }}>
         <Typography variant="h6" fontWeight="bold" gutterBottom>
-          Navigation Timeline:
+          💻 Submitted Code
         </Typography>
-        <Stepper activeStep={activeStep} alternativeLabel>
-  {navigationHistory.map((event, index) => (
-    <Step key={index} disabled>
-         <StepLabel
-            StepIconComponent={() => (
-              <Box
-                sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  backgroundColor: '#1976d2',
-                  color: 'white',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  fontWeight: 'bold',
-                  fontSize: 14,
-                }}
-              >
-                {index + 1} {/* Number of the step */}
-              </Box>
-            )}
-          >
-        {`${event.timestamp} - ${event.action}`}
-      </StepLabel>
-    </Step>
-  ))}
-</Stepper>
-      </Box>
+        <MonacoEditor
+          height="400px"
+          language="java"
+          theme="vs-dark"
+          value={currentQuestion.studentAnswer || ""}
+          options={{ readOnly: true, minimap: { enabled: false }, fontSize: 14 }}
+        />
+      </Card>
+ {/* Anti-Cheating Metrics */}
 
-      <Divider sx={{ my: 3 }} />
+    <CodeReplay testId={testId} questionId={currentQuestion.id} studentId={studentId} />
 
-      {/* Navigate through Questions */}
-      <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-        <Button
-          variant="contained"
-          onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
-          disabled={currentQuestionIndex === 0}
-        >
-          Previous Question
-        </Button>
-        <Button
-          variant="contained"
-          onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
-          disabled={currentQuestionIndex === questions.length - 1}
-        >
-          Next Question
-        </Button>
-      </Box>
+    </>
+  )}
 
-      <Divider sx={{ my: 3 }} />
+  {currentQuestion.category === "multiple_choice" && (
+  <>
+    <Typography variant="h6" fontWeight="bold" gutterBottom>
+      ✅ Review Answers
+    </Typography>
 
-      {/* Question Details */}
-      <Typography variant="h6" gutterBottom>
-        {currentQuestion.questionText}
+    {/* Legendă */}
+    <Box sx={{ mb: 4,mt :3, display: "flex", gap: 3, flexWrap: "wrap" }}>
+      <LegendItem color="#388e3c" label="Selected & Correct" />
+      <LegendItem color="#81c784" label="Correct but not selected" />
+      <LegendItem color="#d32f2f" label="Selected but Wrong" />
+      <LegendItem color="#e0e0e0" label="Not selected & Wrong" />
+    </Box>
+
+    <Box>
+      {(() => {
+        let studentAnswers = [];
+        if (Array.isArray(currentQuestion.studentAnswer)) {
+          studentAnswers = currentQuestion.studentAnswer;
+        } else {
+          try {
+            studentAnswers = JSON.parse(currentQuestion.studentAnswer);
+          } catch {
+            studentAnswers = [];
+          }
+        }
+
+        return currentQuestion.options.map((optionText, index) => {
+          const isSelected = studentAnswers[index] === true;
+          const isCorrect = currentQuestion.correct_answers[index] === true;
+
+          const {
+            bgColor,
+            borderColor,
+            icon,
+            color,
+            fontWeight,
+          } = getOptionStyles(isSelected, isCorrect);
+
+          return (
+            <Box
+              key={index}
+              sx={{
+                p: 2,
+                mb: 1,
+                borderRadius: 2,
+                backgroundColor: bgColor,
+                border: `2px solid ${borderColor}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color,
+                fontWeight,
+                fontSize: "1rem",
+              }}
+            >
+              <Typography>
+                {String.fromCharCode(65 + index)}. {optionText}
+              </Typography>
+              <Typography sx={{ fontSize: 24 }}>{icon}</Typography>
+            </Box>
+          );
+        });
+      })()}
+    </Box>
+  </>
+)}
+
+
+
+
+
+
+  {currentQuestion.category === "free_answer" && (
+    <>
+      <Typography variant="h6" fontWeight="bold" gutterBottom>
+        ✍️ Student Answer
       </Typography>
-
-      {/* Grade for Current Question */}
-      <Box mt={2}>
-        <Typography variant="body1" fontWeight="bold">
-          Grade for this Question:
-        </Typography>
-        <TextField
-          type="number"
-          value={currentQuestion.grade}
-          onChange={(event) => handleGradeChange(event, currentQuestionIndex)}
-          fullWidth
-          inputProps={{ min: 0, max: 10 }}
-        />
+      <Box sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2, backgroundColor: "#fafafa" }}>
+        <Typography>{currentQuestion.studentAnswer || "No answer submitted."}</Typography>
       </Box>
+    </>
+  )}
+</Box>
+   <Snackbar
+         open={snackbar.open}
+         autoHideDuration={6000}
+         onClose={handleCloseSnackbar}
+         anchorOrigin={{ vertical: "top", horizontal: "center" }} // Snackbar at the top
+       >
+         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+           {snackbar.message}
+         </Alert>
+       </Snackbar>
+  </Paper>
 
-      {/* Feedback for Current Question */}
-      <Box mt={2}>
-        <Typography variant="body1" fontWeight="bold">
-          Feedback for this Question:
-        </Typography>
-        <TextField
-          variant="outlined"
-          value={currentQuestion.feedback}
-          onChange={(event) => handleFeedbackChange(event, currentQuestionIndex)}
-          multiline
-          rows={4}
-          fullWidth
-        />
-      </Box>
+  
+);
 
-      {/* Anti-Cheating Metrics */}
-      <Box mt={3}>
-        <Typography variant="h6" fontWeight="bold">
-          Anti-Cheating Metrics for This Question:
-        </Typography>
-        <Typography variant="body2">
-          Typing Speed: {currentQuestion.antiCheatingMetrics.typingSpeed}
-        </Typography>
-        <Typography variant="body2">
-          Copy-Paste Events: {currentQuestion.antiCheatingMetrics.copyPasteEvents}
-        </Typography>
-        <Typography variant="body2">
-          ESC Key Presses: {currentQuestion.antiCheatingMetrics.escKeyPresses}
-        </Typography>
-        <Typography variant="body2">
-          Idle Time Before Typing: {currentQuestion.antiCheatingMetrics.idleTimeBeforeTyping}
-        </Typography>
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Replay Code */}
-      <Typography variant="h6" gutterBottom>
-        Code Replay for this Question
-      </Typography>
-      <MonacoEditor
-        height="400px"
-        language="javascript"
-        theme="vs-dark"
-        value={currentQuestion.codeSnapshot[currentCodeIndex]?.code || ""}
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-          lineNumbers: "on",
-        }}
-      />
-
-      <Box mt={2}>
-        <Typography variant="body2">
-          Timestamp: {currentQuestion.codeSnapshot[currentCodeIndex]?.timestamp || "00:00"}
-        </Typography>
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Replay Controls */}
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Button
-          variant="contained"
-          onClick={handleReplay}
-          disabled={playing}
-        >
-          {playing ? "Replaying..." : "Replay Code"}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handlePause}
-          disabled={!playing}
-        >
-          Pause
-        </Button>
-      </Box>
-
-      {/* Speed Slider */}
-      <Box mt={2}>
-        <Typography variant="body2">Adjust Replay Speed</Typography>
-        <Slider
-          value={speed}
-          min={500}
-          max={5000}
-          step={500}
-          valueLabelDisplay="auto"
-          valueLabelFormat={(value) => `${value / 1000} sec`}
-          onChange={handleSpeedChange}
-        />
-      </Box>
-    </Paper>
-  );
 }

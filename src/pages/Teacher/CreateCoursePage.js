@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { TextField, Button, Grid, Typography, Box, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Checkbox, Card, CardContent, Divider, IconButton } from '@mui/material';
+import { TextField, Button, Grid, Typography, Box, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Checkbox, Card, CardContent, Divider, IconButton, Snackbar, Alert } from '@mui/material';
 import { AddCircleOutline } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { fetchWithRefresh } from '../../utils/fetchWithRefresh';
 
 const CreateCourse = () => {
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+const navigate = useNavigate();
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -20,50 +28,74 @@ const CreateCourse = () => {
 
   // Handle form submission using fetch instead of axios
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Get the token from localStorage
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token');
 
-    if (!token) {
-      alert('You must be logged in to create a course!');
-      return;
-    }
+  if (!token) {
+    setSnackbar({
+      open: true,
+      message: 'You must be logged in to create a course!',
+      severity: 'error',
+    });
+    return;
+  }
 
-    try {
-      const response = await fetch('http://localhost:5000/course', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Ensure that the token is prefixed with 'Bearer '
-        },
-        body: JSON.stringify(formData),
+  try {
+   const response = await fetchWithRefresh('http://localhost:5000/course', {
+  method: 'POST',
+  body: JSON.stringify(formData),
+});
+
+
+  if (response.ok) {
+  const result = await response.json();
+  setSnackbar({
+    open: true,
+    message: `Course created successfully`,
+    severity: 'success',
+  });
+
+  setFormData({
+    name: '',
+    description: '',
+    semester: '',
+    isActive: true,
+  });
+
+  setTimeout(() => {
+  navigate('/TeacherDashboard', { replace: true });
+  window.location.reload(); 
+}, 2000);
+
+}
+ else {
+      const errorResult = await response.json();
+      setSnackbar({
+        open: true,
+        message: `Failed to create course: ${errorResult.error}`,
+        severity: 'error',
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Course created successfully with ID: ${result.id}`);
-        setFormData({
-          name: '',
-          description: '',
-          semester: '',
-          isActive: true,
-        });
-      } else {
-        const errorResult = await response.json();
-        alert(`Failed to create course: ${errorResult.error}`);
-      }
-    } catch (error) {
-      console.error('Error creating course:', error);
-      alert('Failed to create course');
     }
-  };
+  } catch (error) {
+    console.error('Error creating course:', error);
+    setSnackbar({
+      open: true,
+      message: 'Failed to create course',
+      severity: 'error',
+    });
+  }
+};
+const isFormValid = formData.name.trim() !== '' &&
+                    formData.description.trim() !== '' &&
+                    formData.semester.trim() !== '';
+
 
   return (
     <Box sx={{ maxWidth: '80%', margin: 'auto', padding: '20px',  borderRadius: 2 }}>
       <Card sx={{ borderRadius: 3, boxShadow: 5 }}>
         <CardContent>
-          <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+         <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
             Create New Course
           </Typography>
           <Divider sx={{ marginBottom: 3 }} />
@@ -162,29 +194,41 @@ const CreateCourse = () => {
 
               {/* Submit Button with Icon */}
               <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  fullWidth
-                  sx={{
-                    backgroundColor: '#1976d2',
-                    '&:hover': { backgroundColor: '#1565c0' },
-                    padding: '12px',
-                    fontWeight: 'bold',
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AddCircleOutline sx={{ marginRight: 1 }} /> Create Course
-                </Button>
+               <Button
+  variant="contained"
+  color="primary"
+  type="submit"
+  fullWidth
+  disabled={!isFormValid} // 🔒 dezactivat dacă nu e valid
+  sx={{
+    backgroundColor: '#1976d2',
+    '&:hover': { backgroundColor: '#1565c0' },
+    padding: '12px',
+    fontWeight: 'bold',
+    borderRadius: 2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }}
+>
+  <AddCircleOutline sx={{ marginRight: 1 }} /> Create Course
+</Button>
+
               </Grid>
             </Grid>
           </form>
         </CardContent>
       </Card>
+         <Snackbar
+              open={snackbar.open}
+              autoHideDuration={6000}
+              onClose={handleCloseSnackbar}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
     </Box>
   );
 };

@@ -1,363 +1,483 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Typography,
   List,
   ListItem,
   ListItemText,
   IconButton,
-  Collapse,
-  Paper,
   Divider,
-  Tooltip,
   Button,
   Grid,
-  Box
+  Paper,
+  Tabs,
+  Tab,
+  Box,
+  Modal, Chip
 } from "@mui/material";
-import {
-  ClipboardCheck,
-  FileText,
-  CheckCircle,
-  PlayCircle,
-  StopCircle,
-  Eye,
-  Check,
-  X
-} from "lucide-react";
+import { ExpandMore, Edit} from "@mui/icons-material";
+import { Check, X, FileText, Edit2 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import AssignmentsWithSubmissions from "../../components/AssignmentsWithSubmissions ";
+import TestsWithSubmissions from "../../components/TestsWithSubmissions";
+import Materials from "../../components/Materials";
+import Posts from "../../components/Posts";
+import { Link as RouterLink } from "react-router-dom";
+import { fetchWithRefresh } from "../../utils/fetchWithRefresh";
 
-// Student Item Component
-const StudentItem = ({ student, expandedGrades, toggleExpandGrades }) => (
-  <Paper sx={{ mb: 2, p: 3, boxShadow: 4, borderRadius: 3, transition: "0.3s", ":hover": { boxShadow: 6 } }}>
-    <Grid container spacing={2} alignItems="center">
-      {/* Student's Name */}
-      <Grid item xs={12} sm={9}>
-        <Typography variant="h6" fontWeight="bold" noWrap>
-          {student.first_name} {student.last_name}
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          Year {student.year} - {student.specialization}
-        </Typography>
-      </Grid>
+const getStatusLabel = (event) => {
+  const now = new Date();
+  const start = new Date(event.start_time);
+  const end = event.end_time ? new Date(event.end_time) : null;
+  const due = event.due_date ? new Date(event.due_date) : null;
 
-      {/* Button for expanding grades */}
-      <Grid item xs={12} sm={3} container justifyContent="flex-end">
-        <Tooltip title="View Grades & Reports">
-          <IconButton onClick={() => toggleExpandGrades(student.id)} sx={{ p: 0.5 }}>
-            <ClipboardCheck size={22} />
+  if (event.grade !== null && event.grade !== undefined) {
+    return { label: `Grade: ${event.grade}`, color: "#4caf50" };
+  }
+
+  if (event.status === "submitted") {
+    return { label: "Submitted, waiting for grade", color: "#ff9800" };
+  }
+
+  if (event.status === "not_submitted") {
+    if (event.type === "Test") {
+      if (now < start) {
+        return { label: "Upcoming", color: "#2196f3" };
+      }
+      if (now >= start && (!end || now <= end)) {
+        return { label: "Available", color: "#1976d2" };
+      }
+      if (end && now > end) {
+        return { label: "Missed", color: "#f44336" };
+      }
+    } else if (event.type === "Assignment") {
+      if (due && now <= due) {
+        return { label: "Available", color: "#1976d2" };
+      } else {
+        return { label: "Missed", color: "#f44336" };
+      }
+    }
+  }
+
+  return { label: "Unknown", color: "#9e9e9e" };
+};
+
+function StudentItem({ student, expandedGrades, toggleExpandGrades }) {
+  
+  return (
+    <Paper
+      key={student.id}
+      sx={{
+        p: 2,
+        mb: 2,
+        boxShadow: 3,
+        borderRadius: 2,
+        transition: "0.3s",
+        ":hover": { boxShadow: 6, backgroundColor: "#f9fafb" },
+        backgroundColor: "#fff",
+      }}
+    >
+      <Grid container alignItems="center" justifyContent="space-between" spacing={2}>
+        <Grid item xs={8} sm={9} md={10}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: "600",
+              color: "#222",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              maxWidth: "100%",
+            }}
+            title={student.user_name}
+          >
+            {student.user_name}
+          </Typography>
+        </Grid>
+
+        <Grid item>
+          <IconButton
+            color="primary"
+            onClick={() => toggleExpandGrades(student.id)}
+            aria-label={expandedGrades === student.id ? "Collapse grades" : "Expand grades"}
+            size="small"
+          >
+            {expandedGrades === student.id ? <ExpandMore /> : <FileText />}
           </IconButton>
-        </Tooltip>
+        </Grid>
       </Grid>
-    </Grid>
 
-    <Collapse in={expandedGrades === student.id} timeout="auto" unmountOnExit>
-      <List sx={{ pl: 4 }}>
-        {student.tests && student.tests.length > 0 ? (
-          student.tests.map((test, index) => (
-            <ListItem key={index} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
-              <ListItemText primary={test.name} sx={{ flex: 2 }} />
-              {test.graded ? (
-                <Typography variant="body2" fontWeight="bold" color="#2ECC71" sx={{ flex: 1, textAlign: "center" }}>
-                  {test.grade}/10
+      <Divider sx={{ my: 1 }} />
+
+      {expandedGrades === student.id && (
+        <>
+     <List dense>
+  {student.submissions.map((sub) => {
+    const { label, color } = getStatusLabel(sub);
+    const gradeIsNull = sub.grade === null || sub.grade === undefined;
+    const viewButtonText = sub.type === "test" ? "Show Report" : "Show Submission";
+const studentId = student.user?.id ?? student.user_id;
+
+
+const viewLink =
+  sub.type === "test"
+    ? `/TeacherDashboard/test/${sub.item_id}/student/${studentId}/report`
+    : `/TeacherDashboard/assignment/${sub.item_id}/submission/${studentId}`;
+
+    return (
+      <ListItem
+        key={sub.id}
+        sx={{
+          mb: 1,
+          borderRadius: 1,
+          bgcolor: "#fefefe",
+          cursor: "default", // cursor normal pe rând
+          pointerEvents: "none", // dezactivează click pe rând
+        }}
+      >
+        <ListItemText
+          primary={sub.name}
+          secondary={
+            <>
+              {gradeIsNull && (
+                <Typography component="span" sx={{ fontStyle: "italic", color: "gray", mr: 1 }}>
+                  Not graded
                 </Typography>
-              ) : (
-                <Typography variant="body2" color="textSecondary" sx={{ flex: 1, textAlign: "center" }}>No Grade</Typography>
               )}
-              <IconButton sx={{ flex: 1, textAlign: "center", p: 0.5 }}>
-                <CheckCircle size={22} />
-              </IconButton>
-              <IconButton
-                sx={{ flex: 1, textAlign: "center", p: 0.5 }}
-                component={Link}
-                to={`/TeacherDashboard/courses/${student.courseId}/test/${test.name}/student/${student.id}/report`}
-              >
-                <FileText size={22} />
-              </IconButton>
-            </ListItem>
-          ))
-        ) : (
-          <Typography variant="body2" color="textSecondary">No Tests Available</Typography>
-        )}
-      </List>
-    </Collapse>
-  </Paper>
-);
+              <Typography component="span" sx={{ color, fontWeight: "600", mr: 1 }}>
+                {label}
+              </Typography>
+              <Typography component="span" color="text.secondary">
+                | Submitted at: {new Date(sub.submitted_at).toLocaleString()}
+              </Typography>
+            </>
+          }
+          sx={{ pointerEvents: "none" }}
+        />
+
+      <Button
+        variant="outlined"
+        size="small"
+        component={RouterLink}
+        to={viewLink}
+        sx={{
+          textTransform: "none",
+          pointerEvents: "auto",
+          ":hover": { boxShadow: 2 },
+        }}
+      >
+        {viewButtonText}
+      </Button>
+
+      </ListItem>
+    );
+  })}
+</List>
+
+
+        </>
+      )}
+    </Paper>
+  );
+}
+
+
+function TabPanel({ children, value, index, ...other }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
 
 export default function CoursePage() {
   const { courseId } = useParams();
-  const [expandedGrades, setExpandedGrades] = useState(null);
-  const [testStatus, setTestStatus] = useState({});
-  const [reportVisibility, setReportVisibility] = useState(null);
+  const navigate = useNavigate();
+
+
+  // Hooks must be at top-level
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentRequests, setEnrollmentRequests] = useState([]);
+  const [expandedGrades, setExpandedGrades] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+const [studentsWithGrades, setStudentsWithGrades] = useState([]);
 
-  // Fetch course data and pending enrollments in useEffect
-  useEffect(() => {
-    const fetchCourseData = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const response = await fetch(`http://localhost:5000/course/${courseId}`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch course data");
-        }
-        const data = await response.json();
-        setCourseData(data);
-      } catch (error) {
-        console.error("Error fetching course data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    const fetchPendingEnrollments = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const response = await fetch(`http://localhost:5000/enroll/pending?courseId=${courseId}`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch pending enrollments");
-        }
-        const data = await response.json();
-        // Enrich the data with first_name and last_name
-        const enrichedData = data.map((enrollment) => ({
-          ...enrollment,
-          first_name: enrollment.first_name,
-          last_name: enrollment.last_name,
-        }));
-        setEnrollmentRequests(enrichedData);
-      } catch (error) {
-        console.error("Error fetching pending enrollments", error);
-      }
-    };
 
-    fetchCourseData();
-    fetchPendingEnrollments();
-  }, [courseId]);
-
-  const toggleExpandGrades = (id) => {
-    setExpandedGrades((prev) => (prev === id ? null : id));
-  };
-
-  const toggleTestStatus = (test) => {
-    setTestStatus((prev) => ({
-      ...prev,
-      [test]: prev[test] === "running" ? "ended" : "running",
-    }));
-  };
-
-  const toggleReportVisibility = (testName) => {
-    setReportVisibility((prev) => (prev === testName ? null : testName));
-  };
-
-  const handleEnrollmentRequest = async (enrollmentId, action) => {
-    const token = localStorage.getItem("token");
-  
-    // Optimistically update the UI before API call (for faster response)
-    setEnrollmentRequests((prev) => prev.filter((request) => request.id !== enrollmentId));
-  
+useEffect(() => {
+  const fetchCourseData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/enroll/${enrollmentId}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: action }), // action can be 'approved' or 'denied'
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to update enrollment request");
-      }
-  
-      // Fetch updated enrollment requests
-      const enrollmentResponse = await fetch(`http://localhost:5000/enroll/pending?courseId=${courseId}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-  
-      if (!enrollmentResponse.ok) {
-        throw new Error("Failed to fetch updated pending enrollments");
-      }
-  
-      const updatedEnrollmentRequests = await enrollmentResponse.json();
-      setEnrollmentRequests(updatedEnrollmentRequests);
+     const response = await fetchWithRefresh(`http://localhost:5000/course/${courseId}/full`);
+      if (!response.ok) throw new Error("Failed to fetch course data");
+      const data = await response.json();
+      setCourseData(data);
+      console.log(data);
     } catch (error) {
-      console.error("Error handling enrollment request", error);
-  
-      // If error occurs, you can revert the optimistic UI update
-      setEnrollmentRequests((prev) => [
-        ...prev, // Re-include the enrollment request that was removed optimistically
-        { id: enrollmentId, first_name: 'Unknown', last_name: 'Unknown' }, // Ideally, you would refetch the specific request data
-      ]);
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
-  
 
-  if (loading) {
-    return <Typography variant="h6" color="textSecondary">Loading...</Typography>;
-  }
+  const fetchEnrollmentRequests = async (selectedCourseId) => {
+    try {
+      const token = localStorage.getItem("token");
+    
+const url = selectedCourseId 
+  ? `http://localhost:5000/enroll/pending?courseId=${selectedCourseId}`
+  : "http://localhost:5000/enroll/pending";
 
-  if (!courseData) {
-    return <Typography variant="h6" color="textSecondary">Error: Course data not found</Typography>;
+const response = await fetchWithRefresh(url);
+      if (!response.ok) throw new Error("Failed to fetch enrollment requests");
+      const data = await response.json();
+      setEnrollmentRequests(data);
+      console.log(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchCourseData();
+  fetchEnrollmentRequests(courseId); 
+  fetchStudentsWithGrades(courseId);
+
+
+}, [courseId]);
+const fetchStudentsWithGrades = async (selectedCourseId) => {
+  try {
+    const token = localStorage.getItem("token");
+   const response = await fetchWithRefresh(`http://localhost:5000/course/${selectedCourseId}/students-with-grades`);
+
+    if (!response.ok) throw new Error("Failed to fetch students with grades");
+    const data = await response.json();
+    setStudentsWithGrades(data);
+  } catch (error) {
+    console.error(error);
   }
+};
+
+
+
+  const toggleExpandGrades = (studentId) => {
+    setExpandedGrades((prev) => (prev === studentId ? null : studentId));
+  };
+
+  const handleEnrollmentRequest = async (enrollmentId, status) => {
+    try {
+      const token = localStorage.getItem("token");
+   const response = await fetchWithRefresh(`http://localhost:5000/enroll/${enrollmentId}`, {
+  method: "PUT",
+  body: JSON.stringify({ status }),
+});
+      if (!response.ok) throw new Error("Failed to update enrollment");
+      setEnrollmentRequests((prev) => prev.filter((req) => req.id !== enrollmentId));
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const handleOpenEditModal = () => setEditModalOpen(true);
+  const handleCloseEditModal = () => setEditModalOpen(false);
+
+  if (loading) return <Typography>Loading...</Typography>;
+  if (!courseData) return <Typography>Course data not found</Typography>;
+
+
+
+
+const goToTestEdit = (testId) => {
+  navigate(`/course/${courseId}/tests/${testId}/edit`);
+};
+
+const goToAssignmentEdit = (assignmentId) => {
+  navigate(`/course/${courseId}/assignments/${assignmentId}/edit`);
+};
+
+
+
 
   return (
-    <>
-      <Typography variant="h4" fontWeight="bold" color="#333" mb={2}>{courseData.name}</Typography>
-      <Typography variant="body1" color="textSecondary">Enrolled Students: {courseData.students?.length || 0}</Typography>
+    <Box>
+      <Grid container alignItems="center" spacing={1} mb={2}>
+        <Grid item>
+          <Typography variant="h4" fontWeight="bold" color="#333">
+            {courseData.course.name}
+          </Typography>
+        </Grid>
+        <Grid item>
+          <IconButton aria-label="Edit course" onClick={handleOpenEditModal} size="small">
+            <Edit />
+          </IconButton>
+        </Grid>
+      </Grid>
 
-      <Typography variant="h5" fontWeight="bold" color="#333" mt={3}>Students</Typography>
-      <List>
-        {courseData.students?.length > 0 ? (
-          courseData.students.map((student) => (
-            <StudentItem
-              key={student.id}
-              student={student}
-              expandedGrades={expandedGrades}
-              toggleExpandGrades={toggleExpandGrades}
-            />
-          ))
-        ) : (
-          <Typography variant="body2" color="textSecondary">No students enrolled yet</Typography>
-        )}
-      </List>
+      <Typography variant="subtitle1" color="text.secondary" mb={2}>
+        {courseData.course.description}
+      </Typography>
 
-      <Typography variant="h5" fontWeight="bold" mt={5}>Manage Enrollment Requests</Typography>
-      <Divider sx={{ my: 2 }} />
-
-      {enrollmentRequests.length > 0 ? (
-        <List>
-          {enrollmentRequests.map((request) => (
-            <ListItem key={request.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingY: 1, borderRadius: 2, boxShadow: 2, transition: "0.3s", ":hover": { boxShadow: 6, backgroundColor: "#f5f5f5" } }}>
-              <Grid container alignItems="center" spacing={2}>
-                <Grid item xs={8}>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", color: "#333", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>
-                    {`${request.first_name} ${request.last_name}`}
-                  </Typography>
-                </Grid>
-                <Grid item xs={4} container justifyContent="flex-end" spacing={1}>
-                  <Grid item>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleEnrollmentRequest(request.id, "approved")}
-                      sx={{
-                        p: 1,
-                        transition: "0.3s",
-                        ":hover": {
-                          backgroundColor: "rgba(41, 128, 185, 0.1)",
-                        },
-                      }}
-                    >
-                      <Check size={20} />
-                    </IconButton>
-                  </Grid>
-                  <Grid item>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleEnrollmentRequest(request.id, "denied")}
-                      sx={{
-                        p: 1,
-                        transition: "0.3s",
-                        ":hover": {
-                          backgroundColor: "rgba(231, 76, 60, 0.1)",
-                        },
-                      }}
-                    >
-                      <X size={20} />
-                    </IconButton>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <Typography variant="body2" color="textSecondary">No pending enrollment requests</Typography>
-      )}
-
-      <Typography variant="h5" fontWeight="bold" mt={5}>Manage Tests</Typography>
-      <Divider sx={{ my: 2 }} />
-
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ mt: 4, mb: 2 }}
-        component={Link}
-        to={`/TeacherDashboard/courses/${courseId}/create-test`} 
+      <Tabs
+        value={tabValue}
+        onChange={handleTabChange}
+        aria-label="Course page tabs"
+        sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+        variant="scrollable"
+        scrollButtons="auto"
       >
-        Create New Test
-      </Button>
+      <Tab label={`Students (${courseData.enrolledStudents.length})`} />
+<Tab label={`Enrollment Requests (${enrollmentRequests.length})`} />
+<Tab label={`Assignments (${courseData.assignments.length})`} />
+<Tab label={`Tests (${courseData.tests.length})`} />
+<Tab label={`Materials (${courseData.materialsCount ?? 0})`} />
+<Tab label={`Posts (${courseData.postsCount ?? 0})`} />
 
-      <Typography variant="h6" mt={3}>Upcoming Tests</Typography>
-      <List>
-        {courseData.tests?.upcoming?.length > 0 ? (
-          courseData.tests.upcoming.map((test, index) => (
-            <ListItem key={index} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <ListItemText primary={test} />
-              <IconButton onClick={() => toggleTestStatus(test)} sx={{ p: 0.5 }}>
-                {testStatus[test] === "running" ? (
-                  <StopCircle size={22} color="#E74C3C" />
-                ) : (
-                  <PlayCircle size={22} color="#333" />
-                )}
-              </IconButton>
-            </ListItem>
-          ))
-        ) : (
-          <Typography variant="body2" color="textSecondary">No upcoming tests</Typography>
-        )}
-      </List>
+      </Tabs>
 
-      <Typography variant="h6" mt={3}>Completed Tests</Typography>
-      <List>
-        {courseData.tests?.completed?.length > 0 ? (
-          courseData.tests.completed.map((test, index) => (
-            <ListItem key={index} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <ListItemText primary={test} />
-              <IconButton sx={{ p: 0.5 }} onClick={() => toggleReportVisibility(test)}>
-                <Eye size={22} />
-              </IconButton>
-            </ListItem>
-          ))
-        ) : (
-          <Typography variant="body2" color="textSecondary">No completed tests</Typography>
-        )}
-      </List>
+     <TabPanel value={tabValue} index={0}>
+  {studentsWithGrades.length ? (
+    studentsWithGrades.map((student) => (
+      <StudentItem
+        key={student.id}
+        student={student}
+        expandedGrades={expandedGrades}
+        toggleExpandGrades={toggleExpandGrades}
+      />
+    ))
+  ) : (
+    <Typography>No students enrolled yet.</Typography>
+  )}
+</TabPanel>
 
-      {reportVisibility && (
-        <Paper sx={{ p: 3, mt: 3, boxShadow: 4, borderRadius: 3 }}>
+
+      
+
+      {/* Enrollment Requests */}
+      <TabPanel value={tabValue} index={1}>
+        {enrollmentRequests.length ? (
           <List>
-            {courseData.students.map((student) => (
-              <ListItem key={student.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <ListItemText primary={`${student.first_name} ${student.last_name}`} sx={{ flex: 2 }} />
-                {student.tests?.find(test => test.name === reportVisibility)?.graded ? (
-                  <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, textAlign: "center", color: "#2ECC71" }}>
-                    {student.tests.find(test => test.name === reportVisibility).grade}/10
-                  </Typography>
-                ) : (
-                  <Typography variant="body2" sx={{ flex: 1, textAlign: "center", color: "gray" }}>
-                    No Grade
-                  </Typography>
-                )}
+            {enrollmentRequests.map((request) => (
+              <ListItem
+                key={request.id}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingY: 1,
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  transition: "0.3s",
+                  ":hover": { boxShadow: 6, backgroundColor: "#f5f5f5" },
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: "bold", color: "#333" }}>
+                  {request.first_name} {request.last_name}
+                </Typography>
+                <Box>
+                  <IconButton
+                    onClick={() => handleEnrollmentRequest(request.id, "approved")}
+                    color="success"
+                    aria-label="Approve enrollment"
+                  >
+                    <Check />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handleEnrollmentRequest(request.id, "denied")}
+                    color="error"
+                    aria-label="Deny enrollment"
+                  >
+                    <X />
+                  </IconButton>
+                </Box>
               </ListItem>
             ))}
           </List>
-        </Paper>
-      )}
-    </>
+        ) : (
+          <Typography>No enrollment requests pending.</Typography>
+        )}
+      </TabPanel>
+{/* Assignments */}
+<TabPanel value={tabValue} index={2}>
+  <Button
+  variant="contained"
+  color="secondary"
+  sx={{ mt: 2, mb: 2 }}
+  component={Link}
+  to={`/TeacherDashboard/courses/${courseId}/create-assignment`}
+  state={{ courseName: courseData.course.name }}
+>
+  Create Assignment
+</Button>
+
+
+  <AssignmentsWithSubmissions
+    courseId={courseId}
+    goToAssignmentEdit={goToAssignmentEdit}
+  />
+</TabPanel>
+
+<TabPanel value={tabValue} index={3}>
+  <Button
+    variant="contained"
+    color="primary"
+    sx={{ mt: 2, mb: 2 }}
+    component={Link}
+    to={`/TeacherDashboard/courses/${courseId}/create-test`}
+    state={{ courseName: courseData.course.name }}
+  >
+    Create New Test
+  </Button>
+  <TestsWithSubmissions
+    courseId={courseId}
+    goToTestEdit={goToTestEdit}
+  />
+</TabPanel>
+
+<TabPanel value={tabValue} index={4}>
+  <Materials courseId={courseId} />
+</TabPanel>
+
+<TabPanel value={tabValue} index={5}>
+  <Posts
+    courseId={courseId}
+  />
+</TabPanel>
+
+
+  {/* Edit Course Modal */}
+  <Modal open={editModalOpen} onClose={handleCloseEditModal} aria-labelledby="edit-course-modal-title">
+    <Box
+      sx={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 400,
+        bgcolor: "background.paper",
+        borderRadius: 2,
+        boxShadow: 24,
+        p: 4,
+      }}
+    >
+      <Typography id="edit-course-modal-title" variant="h6" component="h2" mb={2}>
+        Edit Course 
+      </Typography>
+      {/* Add form inputs here to edit course details */}
+      <Button onClick={handleCloseEditModal} variant="contained" fullWidth>
+        Close
+      </Button>
+    </Box>
+  </Modal>
+</Box>
   );
 }
