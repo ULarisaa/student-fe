@@ -16,7 +16,7 @@ import {
   TableCell,
   Table,
   TableContainer, 
-  TableBody
+  TableBody, Avatar
 } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
@@ -52,8 +52,7 @@ useEffect(() => {
 
   const token = localStorage.getItem('token');
 
-  useEffect(() => {
-   const fetchData = async () => {
+const fetchData = async () => {
   try {
     const [assignmentRes, submissionRes, commentsRes] = await Promise.all([
       fetchWithRefresh(`http://localhost:5000/assignments/assignment/${assignmentId}`),
@@ -68,7 +67,6 @@ useEffect(() => {
     const submissionData = await submissionRes.json();
     const commentsData = commentsRes.ok ? await commentsRes.json() : [];
 
-    console.log(submissionData);
     setAssignment(assignmentData);
     setSubmission(submissionData);
     setComments(commentsData);
@@ -78,10 +76,10 @@ useEffect(() => {
     setLoading(false);
   }
 };
+useEffect(() => {
+  fetchData();
+}, [assignmentId, studentId, token]);
 
-
-    fetchData();
-  }, [assignmentId, studentId, token]);
 async function handleGradeAndFeedbackSubmit() {
   try {
     const res = await fetchWithRefresh(
@@ -97,9 +95,11 @@ async function handleGradeAndFeedbackSubmit() {
     if (!res.ok) throw new Error('Failed to submit grade and feedback');
 
     const data = await res.json();
-    setSubmitStatus('Grade and feedback saved successfully');
+    await fetchData(); 
+setSubmitStatus('Grade and feedback saved successfully');
+
  
-    setSubmission(data.submission);
+  
     window.location.reload();
   } catch (error) {
     setSubmitStatus(`Error: ${error.message}`);
@@ -124,7 +124,12 @@ async function handleGradeAndFeedbackSubmit() {
         setComments((prev) => [...prev, createdComment]);
         setNewCommentText('');
         setCommentError('');
-        setCommentSubmitStatus('Comment submitted successfully!');
+    
+        await fetchData();setCommentSubmitStatus('Comment submitted successfully!');
+        setTimeout(() => {
+          setCommentSubmitStatus('');
+        }, 3000); 
+
       } else {
         const errData = await res.json();
         throw new Error(errData.error || 'Unknown error');
@@ -135,7 +140,7 @@ async function handleGradeAndFeedbackSubmit() {
   };
 
   const downloadFileSubmission = async (file) => {
-  const token = localStorage.getItem('token'); // or wherever you store the JWT
+
 
   try {
  const response = await fetchWithRefresh(`http://localhost:5000/assignments/submission-files/${file.id}`);
@@ -147,11 +152,11 @@ async function handleGradeAndFeedbackSubmit() {
 
     const blob = await response.blob();
 
-    // Create a URL for the blob and click a hidden link to download it
+
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = file.file_name; // use actual file name
+    a.download = file.file_name; 
     console.log(file.file_name);
 
     document.body.appendChild(a);
@@ -315,7 +320,7 @@ async function handleGradeAndFeedbackSubmit() {
     lineHeight: 1.6,
   }}
 >
-  {/* Submission Section - Read-only view for teachers */}
+
   {assignment.answer_type === 'file' ? (
   <>
   <Typography fontWeight={600} mb={1}>
@@ -390,11 +395,11 @@ async function handleGradeAndFeedbackSubmit() {
 
      <Divider sx={{ my: 5 }} />
 
-        {/* Submission Info + Time Info Table */}
+ 
       <TableContainer component={Paper} elevation={3} sx={{ mb: 5, borderRadius: 2 }}>
   <Table>
     <TableBody>
-      {/* Submission Status */}
+
       <TableRow>
         <TableCell
           colSpan={2}
@@ -420,7 +425,7 @@ async function handleGradeAndFeedbackSubmit() {
         </TableCell>
       </TableRow>
 
-      {/* Due Date */}
+
       <TableRow>
         <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc', width: 160 }}>
           Due Date
@@ -430,7 +435,7 @@ async function handleGradeAndFeedbackSubmit() {
         </TableCell>
       </TableRow>
 
-     {/* Submitted At */}
+
 {(submission?.status === 'submitted' || submission?.status === 'graded') && submission.submittedAt && (
   <TableRow>
     <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc' }}>
@@ -442,13 +447,12 @@ async function handleGradeAndFeedbackSubmit() {
   </TableRow>
 )}
 
-      {/* Time Left */}
+
       <TableRow>
         <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc' }}>Time Left</TableCell>
         <TableCell sx={{ fontWeight: 600 }}>{renderTimeLeft()}</TableCell>
       </TableRow>
 
-      {/* Grade */}
       <TableRow>
         <TableCell
           sx={{
@@ -471,7 +475,6 @@ async function handleGradeAndFeedbackSubmit() {
         </TableCell>
       </TableRow>
 
-      {/* Feedback */}
       <TableRow>
         <TableCell
           sx={{
@@ -523,70 +526,117 @@ async function handleGradeAndFeedbackSubmit() {
 
      
 
-        <Card elevation={3} sx={{ p: 3, borderRadius: 3, backgroundColor: "#f9fbfd" }}>
-             <Box sx={{ mt: 1 }}>
-               <Typography variant="h6" gutterBottom>
-                 Comments
-               </Typography>
-       
-               {comments && comments.length === 0 ? (
-                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                   No comments yet.
-                 </Typography>
-               ) : (
-                 comments.map((c) => (
-                   <Card key={c.id} variant="outlined" sx={{ mb: 1, p: 1, bgcolor: "#f9f9f9" }}>
-                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                       {c.author_name}
-                     </Typography>
-                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                       {c.comment_text}
-                     </Typography>
-                     <Typography variant="caption" color="text.secondary">
-                       {new Date(c.created_at).toLocaleString()}
-                     </Typography>
-                   </Card>
-                 ))
-               )}
-       
-               <Box sx={{ mt: 3 }}>
-                 <TextField
-                   label="Add a comment"
-                   multiline
-                   minRows={3}
-                   fullWidth
-                   value={newCommentText}
-                   onChange={(e) => {
-                     setNewCommentText(e.target.value);
-                     setCommentError("");
-                     setCommentSubmitStatus("");
-                   }}
-                   error={!!commentError}
-                   helperText={commentError}
-                 />
-                 <Button
-                   variant="contained"
-                   onClick={handleCommentSubmit}
-                   sx={{ mt: 1, fontWeight: 600 }}
-                   disabled={!newCommentText.trim()}
-                 >
-                   Submit Comment
-                 </Button>
-                 {commentSubmitStatus && (
-                   <Typography
-                     variant="body2"
-                     sx={{
-                       mt: 1,
-                       fontWeight: 600,
-                       color: commentSubmitStatus.includes("success") ? "success.main" : "error.main",
-                     }}
-                   >
-                     {commentSubmitStatus}
-                   </Typography>
-                 )}
-               </Box>
-             </Box>
-           </Card>
+       <Card elevation={3} sx={{ p: 3, borderRadius: 3, backgroundColor: "#f9fbfd" }}>
+  <Box sx={{ mt: 1 }}>
+    <Typography variant="h6" gutterBottom>
+      Comments
+    </Typography>
+
+    {(!comments || comments.length === 0) ? (
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        No comments yet.
+      </Typography>
+    ) : (
+      comments.map((c, index) => (
+        <Card
+          key={index}
+          variant="outlined"
+          sx={{
+            mb: 1,
+            p: 1.5,
+            bgcolor: "#f9f9f9",
+            borderRadius: 1,
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexGrow={1}
+              minWidth={0}
+            >
+              <Avatar
+                alt={c.author_name}
+                src={c.author_avatar_url || ""}
+                sx={{ width: 28, height: 28 }}
+              />
+              <Typography
+                variant="body2"
+                fontWeight="600"
+                noWrap
+                sx={{ minWidth: 0 }}
+              >
+                {c.author_name}
+              </Typography>
+            </Stack>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
+            >
+              {new Date(c.created_at).toLocaleString()}
+            </Typography>
+          </Stack>
+
+          <Typography
+            variant="body2"
+            sx={{ mt: 1, whiteSpace: "pre-line", pl: 5 }}
+          >
+            {c.comment_text}
+          </Typography>
+        </Card>
+      ))
+    )}
+
+
+    <Box mt={2} display="flex" gap={1}>
+      <TextField
+        size="small"
+        fullWidth
+        multiline
+        minRows={1}
+        maxRows={4}
+        placeholder="Write a comment..."
+        value={newCommentText}
+        onChange={(e) => {
+          setNewCommentText(e.target.value);
+          setCommentError("");
+          setCommentSubmitStatus("");
+        }}
+        error={!!commentError}
+        helperText={commentError}
+      />
+      <Button
+        variant="contained"
+        onClick={handleCommentSubmit}
+        disabled={!newCommentText.trim()}
+      >
+        Send
+      </Button>
+    </Box>
+
+    {commentSubmitStatus && (
+      <Typography
+        variant="body2"
+        sx={{
+          mt: 1,
+          fontWeight: 600,
+          color: commentSubmitStatus.includes("success")
+            ? "success.main"
+            : "error.main",
+        }}
+      >
+        {commentSubmitStatus}
+      </Typography>
+    )}
+  </Box>
+</Card>
         </CardContent>
       </Card>
     </Box>

@@ -87,18 +87,18 @@ useEffect(() => {
       });
 
       const mergedEvents = [...formattedTests, ...formattedAssignments];
-    // Fetch submission status and grades per event for current user
+
 const statusResponse = await fetchWithRefresh(`http://localhost:5000/course/${courseId}/submissions/status`, {
   method: "GET",
 });
 if (!statusResponse.ok) throw new Error("Failed to fetch submission status");
 
-const statusData = await statusResponse.json(); // { assignments: [...], tests: [...] }
+const statusData = await statusResponse.json(); 
 
-// Map status and grade by event type + id
+
 const statusMap = {};
 
-// For assignments
+
 statusData.assignments.forEach((assignment) => {
   statusMap[`assignment_${assignment.id}`] = {
     status: assignment.status,
@@ -106,7 +106,7 @@ statusData.assignments.forEach((assignment) => {
   };
 });
 
-// For tests
+
 statusData.tests.forEach((test) => {
   statusMap[`test_${test.id}`] = {
     status: test.status,
@@ -114,7 +114,7 @@ statusData.tests.forEach((test) => {
   };
 });
 
-// Merge the data into each event
+
 const eventsWithStatusAndGrades = mergedEvents.map((event) => {
   const key = `${event.type.toLowerCase()}_${event.id}`;
   const data = statusMap[key] || { status: "not_submitted", grade: null };
@@ -142,18 +142,18 @@ setEvents(eventsWithStatusAndGrades);
 
 
 useEffect(() => {
-  console.log(events); // Debugging step
+  console.log(events); 
 }, [events]);
 
 
 
   const handleCloseDialog = () => {
-  setOpenDialog(false); // pornește închiderea (cu tranziție)
+  setOpenDialog(false); 
 
-  // așteaptă 300ms ca să se închidă frumos, apoi șterge conținutul
+
   setTimeout(() => {
     setDialogContent(null);
-  }, 300); // acest timeout ar trebui să fie cât durata tranziției Dialog-ului
+  }, 300); 
 };
 
   const handleTestCountdown = (startTime, endTime) => {
@@ -268,11 +268,11 @@ const [selectedTestId, setSelectedTestId] = useState(null);
 
 const handleTakeTest = (testId) => {
   setSelectedTestId(testId);
-  navigate(`/test/${selectedTestId}`, { state: { enterFullscreen: true } });
- 
+  navigate(`/test/${testId}`, { state: { enterFullscreen: true } });
 };
+
 const handleSeeResults = (item) => {
-  // item poate fi dialogContent sau un obiect care are type și id
+
   if (item.type === "Test") {
     navigate(`/StudentDashboard/test/${item.id}/expected`);
   } else if (item.type === "Assignment") {
@@ -295,23 +295,23 @@ const handleGoToAssignment = (assignmentId) => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header Info and Test Access Section */}
+ 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 3 }}>
       
-        {/* Left Side: Course Info and Test Access */}
+ 
         <Box sx={{ flex: 1, minWidth: '45%' }}>
        <Typography variant="h3" component="h2" fontWeight="bold" gutterBottom sx={{ color: '#1976d2' }}>
   {course?.name}
 </Typography>
 
           
-          {/* Teacher Info */}
+
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-start',
             gap: 1,
-            mb: 2 // Consistent margin for Teacher section
+            mb: 2 
           }}>
             <SchoolIcon color="primary" fontSize="small" />
             <Typography variant="h6" color="textSecondary" sx={{ whiteSpace: 'nowrap' }}>
@@ -341,8 +341,8 @@ const handleGoToAssignment = (assignmentId) => {
             </Tooltip>
           </Box>
   
-          {/* Semester Info */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}> {/* Consistent margin for Semester section */}
+       
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}> 
             <DateRangeIcon sx={{ mr: 1 }} color="primary" />
             <Typography variant="h6" color="textSecondary">Semester: {course?.semester}</Typography>
           </Box>
@@ -360,7 +360,7 @@ const handleGoToAssignment = (assignmentId) => {
 
         </Box>
   
-        {/* Right Side: Calendar */}
+   
         <Box sx={{ flex: 1, minWidth: '45%' }}>
           <EventsCalendar events={events} onDateClick={handleDateClick} onMonthChange={() => {}} />
         </Box>
@@ -382,7 +382,7 @@ const handleGoToAssignment = (assignmentId) => {
   
 
   
-      {/* Test Details Dialog */}
+
 <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
  <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
   {dialogContent?.type === "Test" ? (
@@ -464,7 +464,7 @@ const handleGoToAssignment = (assignmentId) => {
   Status:
 </Typography>
 
-{/* Afișăm countdownMessage doar dacă nu e test cu status graded/submitted */}
+
 {!(dialogContent.type === "Test" && (dialogContent.status === "graded" || dialogContent.status === "submitted")) && (
   <Typography variant="body1" component="p" sx={{ mb: 2 }}>
     {dialogContent.countdownMessage}
@@ -474,10 +474,10 @@ const handleGoToAssignment = (assignmentId) => {
 {dialogContent.type === "Test" && (() => {
   const getStatusStyle = (dialogContent) => {
     if (dialogContent.status === "graded") {
-      return { label: `Grade: ${dialogContent.grade ?? 'N/A'}`, color: "#4caf50" }; // verde
+      return { label: `Grade: ${dialogContent.grade ?? 'N/A'}`, color: "#4caf50" }; 
     }
     if (dialogContent.status === "submitted") {
-      return { label: "Submitted - Waiting for grade", color: "#ff9800" }; // portocaliu
+      return { label: "Submitted - Waiting for grade", color: "#ff9800" }; 
     }
     return null;
   };
@@ -535,7 +535,7 @@ const handleGoToAssignment = (assignmentId) => {
 
 
 
-{/* Pentru Assignment când afișăm See Results dacă termenul a trecut */}
+
 {dialogContent.type === "Assignment" && new Date(dialogContent.due_date) <= new Date() && (
   <Button
     variant="contained"
@@ -545,7 +545,7 @@ const handleGoToAssignment = (assignmentId) => {
     onClick={() => {
       handleCloseDialog();
       setTimeout(() => {
-        handleSeeResults(dialogContent);  // la fel, trimiți întreg obiectul
+        handleSeeResults(dialogContent);  
       }, 500);
     }}
   >
@@ -553,7 +553,7 @@ const handleGoToAssignment = (assignmentId) => {
   </Button>
 )}
 
-           {/* Debug logs */}
+
       {console.log("Type:", dialogContent.type)}
       {console.log("Due time:", dialogContent.id)}
 

@@ -109,8 +109,8 @@ const enrollInCourse = async (courseId) => {
         severity: "success",
       });
 
-      // 🔁 Reîncarcă statusul de înscriere (fără reload pagină)
-      await fetchEnrollments(); // sau fetchCourses(), fetchStatus(), etc.
+    
+      await fetchEnrollments(); 
     } else {
       setSnackbar({
         open: true,
@@ -129,7 +129,7 @@ const enrollInCourse = async (courseId) => {
 
 
 
-  // Extract unique semesters for filter dropdown
+
   const uniqueSemesters = Array.from(
     new Set(enrollments.map((c) => c.semester))
   ).sort();
@@ -146,7 +146,7 @@ const enrollInCourse = async (courseId) => {
         </Typography>
       )}
 
-      {/* Search and Semester Filter */}
+
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -217,7 +217,7 @@ const enrollInCourse = async (courseId) => {
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  height: 180, // fixed height
+                  height: 180, 
                   transition: "transform 0.15s ease-in-out",
                   "&:hover": {
                     transform: "scale(1.03)",
@@ -281,7 +281,7 @@ const enrollInCourse = async (courseId) => {
                   }}
                 >
                   {(() => {
-                    // Multiline chip labels
+           
                     const baseChipProps = {
                       variant: "outlined",
                       sx: {
@@ -314,7 +314,7 @@ const enrollInCourse = async (courseId) => {
                               label="Your request is pending."
                               color="info"
                               {...baseChipProps}
-                              sx={{ cursor: "help" }} // show pointer to hint hover
+                              sx={{ cursor: "help" }} 
                             />
                           </Tooltip>
                         );

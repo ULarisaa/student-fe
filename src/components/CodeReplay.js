@@ -10,7 +10,7 @@ function CodeReplay({ testId, questionId, studentId }) {
   const [snapshots, setSnapshots] = useState([]);
   const [currentCodeIndex, setCurrentCodeIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1000); // ms între frame-uri
+  const [speed, setSpeed] = useState(1000); 
   const intervalRef = useRef(null);
 
   useEffect(() => {

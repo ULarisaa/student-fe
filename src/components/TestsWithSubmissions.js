@@ -100,7 +100,7 @@ useEffect(() => {
   };
 
 const handleDeleteAllSnapshots = async (testId) => {
-  setConfirmModal({ open: true, testId }); // deschide modalul
+  setConfirmModal({ open: true, testId }); 
 };
 const confirmDeleteSnapshots = async () => {
   const testId = confirmModal.testId;
@@ -121,7 +121,7 @@ const confirmDeleteSnapshots = async () => {
         message: "All coding replays deleted!",
         severity: "success",
       });
-      // Optional: poți reîncărca studenții aici
+
     } else {
       setSnackbar({
         open: true,

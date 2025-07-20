@@ -73,7 +73,7 @@ const validateTimeLimits = () => {
     return false;
   }
 
-  const maxDuration = Math.floor((end - start) / 1000); // seconds
+  const maxDuration = Math.floor((end - start) / 1000); 
 
   if (useCustomTimePerTask) {
     const sumTaskSeconds = tasks.reduce((acc, task) => {
@@ -125,7 +125,7 @@ const overallLimitStr = formatSecondsToTime(overallSeconds);
     const updatedTasks = [...prevTasks];
     const updatedTask = { ...updatedTasks[index], type: newType };
 
-    // Reset task fields based on the selected type
+  
     if (newType === "coding") {
       updatedTask.testCases = [{ input: "", output: "" }];
       updatedTask.options = [""];
@@ -133,11 +133,11 @@ const overallLimitStr = formatSecondsToTime(overallSeconds);
     } else if (newType === "multiple_choice") {
       updatedTask.options = [""];
       updatedTask.correctAnswers = [];
-      updatedTask.testCases = []; // not needed
+      updatedTask.testCases = []; 
     } else if (newType === "free_answer") {
       updatedTask.options = [""];
       updatedTask.correctAnswers = [];
-      updatedTask.testCases = []; // not needed
+      updatedTask.testCases = []; 
     }
 
     updatedTasks[index] = updatedTask;
@@ -152,10 +152,10 @@ const handleTaskChange = (index, field, value) => {
   if (field === 'options') {
     const optionCount = value.length;
     const oldAnswers = newTasks[index].correctAnswers || [];
-    // Creăm un nou array corectAnswers cu lungimea actuală a opțiunilor
+
     const newAnswers = [];
     for (let i = 0; i < optionCount; i++) {
-      // Păstrăm corectAnswers[i] dacă există, altfel false
+ 
       newAnswers[i] = oldAnswers[i] !== undefined ? oldAnswers[i] : false;
     }
     newTasks[index].correctAnswers = newAnswers;
@@ -178,7 +178,7 @@ const handleCustomTimeToggle = (event) => {
     setTasks(newTasks);
     setAllowSwitch(false);
   } else {
-    // Turning on custom time: enable useCustomTime on all tasks
+
     const newTasks = tasks.map(task => ({
       ...task,
       useCustomTime: true,
@@ -193,7 +193,7 @@ const handleCustomTimeToggle = (event) => {
 function parseTimeToSeconds(timeStr) {
   const parts = timeStr.split(':').map(Number);
   if (parts.length === 2) {
-    // MM:SS
+
     const [minutes, seconds] = parts;
     if (
       Number.isInteger(minutes) && minutes >= 0 &&
@@ -202,7 +202,7 @@ function parseTimeToSeconds(timeStr) {
       return minutes * 60 + seconds;
     }
   } else if (parts.length === 3) {
-    // HH:MM:SS
+
     const [hours, minutes, seconds] = parts;
     if (
       Number.isInteger(hours) && hours >= 0 &&
@@ -212,7 +212,7 @@ function parseTimeToSeconds(timeStr) {
       return hours * 3600 + minutes * 60 + seconds;
     }
   }
-  return null; // invalid format
+  return null; 
 }
 
 function formatSecondsToTime(seconds) {
@@ -282,7 +282,6 @@ const removeOption = (taskIndex, optionIndex) => {
     task.options.splice(optionIndex, 1);
     task.correctAnswers.splice(optionIndex, 1);
 
-    // După ștergere, dacă mai există discrepanțe, repară corectAnswers
     while (task.correctAnswers.length < task.options.length) {
       task.correctAnswers.push(false);
     }
@@ -297,8 +296,8 @@ const removeOption = (taskIndex, optionIndex) => {
 
   const addOption = (taskIndex) => {
     const newTasks = [...tasks];
-    newTasks[taskIndex].options.push(""); // Add new option
-    newTasks[taskIndex].correctAnswers.push(false); // Add false to correctAnswers
+    newTasks[taskIndex].options.push(""); 
+    newTasks[taskIndex].correctAnswers.push(false);
     setTasks(newTasks);
   };
   
@@ -309,8 +308,8 @@ const handleCorrectAnswerChange = (taskIndex, optionIndex) => {
 };
 useEffect(() => {
   validateTimeLimits();
-  // dacă validateTimeLimits face setState pe ceva care nu trebuie în deps, excludem acel ceva din deps
-}, [testStartTime, testEndTime, overallTimeLimit, useCustomTimePerTask]); // exclude tasks dacă e cauza
+
+}, [testStartTime, testEndTime, overallTimeLimit, useCustomTimePerTask]); 
 
 const handleSubmit = async () => {
   const token = localStorage.getItem("token");
@@ -574,7 +573,7 @@ const isFormValid = () => {
           position: "relative",
         }}
       >
-        {/* Delete Task Button - placed at the bottom center */}
+    
         {index !== 0 && (
           <Box
             sx={{
@@ -618,7 +617,7 @@ const isFormValid = () => {
     onChange={(e) => handleTaskTypeChange(index, e.target.value)}
     label="Task Type"
     sx={{
-      '& .MuiSelect-icon': { color: '#1976d2' }, // iconița dropdown
+      '& .MuiSelect-icon': { color: '#1976d2' }, 
       '& .MuiOutlinedInput-notchedOutline': {
         borderColor: '#1976d2',
       },
@@ -769,7 +768,7 @@ const isFormValid = () => {
             </>
           )}
 
-          {/* Multiple Choice and Free Answer Options Section */}
+
           {task.type === "multiple_choice"  &&
             task.options.map((option, optionIndex) => (
               <Grid container alignItems="center" key={optionIndex} sx={{ mb: 1 }}>

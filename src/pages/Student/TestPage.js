@@ -86,10 +86,10 @@ const firstTypedTimestampRef = useRef(null);
  const [inFullscreen, setInFullscreen] = useState(false);
 
 const handleEditorMount = (editor, monaco) => {
-  // Disable context menu
+
   editor.updateOptions({ contextmenu: false });
 
-  // Intercept Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+U, Ctrl+B
+
   editor.onKeyDown((e) => {
     const key = e.browserEvent.key.toLowerCase();
     const isCtrl = e.browserEvent.ctrlKey || e.browserEvent.metaKey;
@@ -104,7 +104,7 @@ const handleEditorMount = (editor, monaco) => {
       e.stopPropagation();
       showSnackbar("Copy and paste actions are restricted. This event will be reported.", "warning");
 
-      // Log and count attempt
+
       copyPasteAttemptsRef.current += 1;
       setCopyPasteAttempts(copyPasteAttemptsRef.current);
     }
@@ -117,7 +117,7 @@ const handleStartFullscreen = () => {
     elem.requestFullscreen()
       .then(() => {
         setShowFullscreenButton(false);
-        setInFullscreen(true); // marchezi că e fullscreen activ
+        setInFullscreen(true); 
       })
       .catch((err) => {
         console.error("Fullscreen error:", err);
@@ -217,12 +217,10 @@ const handleSubmitQuestion = async () => {
 };
 
 
-
-// de exemplu, un useEffect care rulează la tastare și calculează idle time
 useEffect(() => {
   const interval = setInterval(() => {
     const now = Date.now();
-    if (now - lastTypedTimestamp.current > 1000) {  // dacă e idle > 1 sec
+    if (now - lastTypedTimestamp.current > 1000) {  
       totalIdleTime.current += now - lastTypedTimestamp.current;
       lastTypedTimestamp.current = now;
     }
@@ -241,12 +239,11 @@ const handleTyping = (newValue) => {
 
   const now = Date.now();
 
-  // Setează momentul primei tastări
+
   if (!firstTypedTimestampRef.current) {
     firstTypedTimestampRef.current = now;
   }
 
-  // Poți păstra și ultima tastare pentru alte scopuri, dar nu o folosești pentru idle total acum
   lastTypedTimestamp.current = now;
 };
 
@@ -255,7 +252,7 @@ useEffect(() => {
   questionStartTimestamp.current = Date.now();
   totalIdleTime.current = 0;
   lastTypedTimestamp.current = Date.now();
-  firstTypedTimestampRef.current = null;  // resetează prima tastare
+  firstTypedTimestampRef.current = null;  
   setTypedChars(0);
   typedCharsRef.current = 0;
 }, [currentQuestion]);
@@ -265,10 +262,10 @@ const handleSubmitClick = async () => {
     const now = Date.now();
   const answerTimeMs = now - questionStartTimestamp.current;
 
-  // Idle time = timp de la începutul întrebării până la prima tastare
+
   const idleTimeMs = firstTypedTimestampRef.current
     ? firstTypedTimestampRef.current - questionStartTimestamp.current
-    : answerTimeMs;  // dacă nu s-a tastat nimic, idle = tot timpul
+    : answerTimeMs;  
 
   const activeTypingTimeSec = (answerTimeMs - idleTimeMs) / 1000;
   const typedChars = typedCharsRef.current;
@@ -278,11 +275,11 @@ const handleSubmitClick = async () => {
   console.log(typingSpeed);
   console.log(idleTimeMs);
 
-  // Actualizare answers cu aceste date
+
   const updatedAnswer = {
     ...answers[q.id],
-    answer_time: Math.round(answerTimeMs / 1000), // secunde
-    idle_time: Math.round(idleTimeMs / 1000),     // secunde
+    answer_time: Math.round(answerTimeMs / 1000), 
+    idle_time: Math.round(idleTimeMs / 1000),     
     typing_speed: Math.round(typingSpeed),
   };
 
@@ -291,7 +288,7 @@ const handleSubmitClick = async () => {
     [q.id]: updatedAnswer,
   }));
 
-  // Pentru coding
+
   if (q.category === "coding") {
     const count = submitCount[currentQuestion] || 0;
     if (count < 3) {
@@ -299,7 +296,7 @@ const handleSubmitClick = async () => {
       if (submissionResult) {
         const { code, passedCount, totalCount } = submissionResult;
 
-        // Preluăm și test_results din answers, dacă există
+  
         const testResults = updatedAnswer.test_results || [];
 
         const updated = { ...responses };
@@ -311,7 +308,7 @@ const handleSubmitClick = async () => {
           idle_time: updatedAnswer.idle_time,
           tests_passed: passedCount,
           tests_total: totalCount,
-          test_results: testResults,  // array cu detalii despre fiecare test (passed true/false etc)
+          test_results: testResults, 
         };
         console.log(updated);
         setResponses(updated);
@@ -324,7 +321,7 @@ const handleSubmitClick = async () => {
       showSnackbar("Maximum 3 submissions allowed for this question", "warning");
     }
   } else {
-    // Pentru non-coding
+
     if (answerSubmitted[currentQuestion]) return;
 
     const updated = { ...responses };
@@ -355,7 +352,7 @@ const handleSubmitClick = async () => {
 
 
 const handleSubmitSimpleAnswer = () => {
-  const type = q.category;  // corect aici
+  const type = q.category;  
 
   let isValid = true;
   const answer = answers[currentQuestion];
@@ -415,26 +412,25 @@ useEffect(() => {
       if (!res.ok) throw new Error("Failed to load test");
       const data = await res.json();
 
-      // Shuffle questions
+
       data.questions = shuffleArray(data.questions);
       setTestData(data);
       setLoading(false);
 
       console.log(data);
 
-      // Initialize empty responses for each question:
       const emptyResponses = {};
       data.questions.forEach(q => {
         emptyResponses[q.id] = {
           question_id: q.id,
-          answer: "",       // empty answer string
+          answer: "",       
           answer_time: 0,
           typing_speed: 0,
         };
       });
       setResponses(emptyResponses);
 
-      // Calculate test duration
+
       const testDuration = data.test.duration;
 
       const isDurationEmpty = 
@@ -478,7 +474,7 @@ useEffect(() => {
 
 
 useEffect(() => {
-  // La început, trimite instant snapshot pentru codul curent (ex: javaTemplate)
+
   const response = debouncedResponses[currentQuestion];
   if (response !== undefined) {
     const currentCode = response.answer;
@@ -498,7 +494,7 @@ useEffect(() => {
     }
   }
 
-  // Apoi pornește intervalul care verifică și trimite la fiecare 5 secunde
+
   let iv = setInterval(() => {
     const response = debouncedResponses[currentQuestion];
     if (response !== undefined) {
@@ -588,13 +584,13 @@ const handleRunCodeNoInput = async () => {
 
 const handleInputChange = (e) => {
   const value = e.target.value;
-  // Example: allow letters, digits, spaces, basic punctuation only
+
   const allowedPattern = /^[a-zA-Z0-9\s.,;:!?"'()*+-]*$/;
   
   if (allowedPattern.test(value)) {
     setInput(value);
   } else {
-    // optionally ignore invalid chars or show a warning
+  
   }
 };
 const responsesRef = useRef(responses);
@@ -643,7 +639,7 @@ const handleSubmit = useCallback(async () => {
       ...baseAnswer,
       tests_passed: answers[q.id]?.tests_passed ?? 0,
       tests_total: answers[q.id]?.tests_total ?? 0,
-      test_results: answers[q.id]?.test_results ?? [], // aici adaugă array-ul cu detalii despre fiecare test
+      test_results: answers[q.id]?.test_results ?? [], 
     };
   }
 
@@ -738,7 +734,7 @@ useEffect(() => {
   const handleKeyDown = (e) => {
     if (e.key === "Escape") {
       console.log("ESC key pressed (may cause fullscreen exit)");
-      // Poți loga dacă vrei, dar nu declanșăm submit aici.
+      
     }
   };
 
@@ -783,7 +779,7 @@ useEffect(() => {
 
   const handleFullscreenChange = () => {
     if (!document.fullscreenElement) {
-      // Aici contorizezi ieșirea din fullscreen
+
       fullscreenExitCountRef.current += 1;
       setFullscreenExitCount(fullscreenExitCountRef.current);
       console.log("Exited fullscreen", fullscreenExitCountRef.current);
@@ -823,7 +819,7 @@ const totalTypedCharsRef = useRef(0);
 
 useEffect(() => {
   if (!testData || isTestSubmitted) return;
-  answerTimeRef.current = Date.now(); // momentul start răspuns pentru întrebarea curentă
+  answerTimeRef.current = Date.now(); 
 }, [currentQuestion]);
 
 
@@ -853,8 +849,8 @@ const saveAnswerTimeForQuestion = (questionIndex, elapsedMs, typingSpeedCPM, idl
   }
 
   answerTimeRef.current = Date.now();
-  // Nu mai folosim totalIdleTimeRef, ci firstTypedTimestampRef
-  firstTypedTimestampRef.current = null;  // resetează prima tastare
+
+  firstTypedTimestampRef.current = null;  
 
   typingStartRef.current = null;
   totalTypedCharsRef.current = 0;
@@ -864,7 +860,7 @@ const saveAnswerTimeForQuestion = (questionIndex, elapsedMs, typingSpeedCPM, idl
     const now = Date.now();
     const elapsedMs = now - answerTimeRef.current;
 
-    // Idle time = timpul de la început până la prima tastare (dacă există)
+
     const idleTimeMs = firstTypedTimestampRef.current
       ? firstTypedTimestampRef.current - answerTimeRef.current
       : elapsedMs;
@@ -920,7 +916,7 @@ useEffect(() => {
     return;
   }
 
-  // aici adăugăm 500 ms în plus
+
   const end = Date.now() + totalMs + 350;
   questionEndRef.current = end;
 
@@ -1014,13 +1010,12 @@ useEffect(() => {
 
  const handleNextQuestion = () => {
   const now = Date.now();
-  // Calculează cât timp a trecut efectiv de la start
+
   const elapsed = now - (testEndRef.current - timeLeft);
 
-  // Setează noul final al testului scăzând timpul întrebării deja consumat
+
   testEndRef.current = now + (timeLeft - questionTimeLeft);
 
-  // Actualizează timeLeft în mod corect
   setTimeLeft(prev => Math.max(0, prev - questionTimeLeft));
 
   setCurrentQuestion(prev => prev + 1);
@@ -1071,12 +1066,12 @@ return (
     alignItems: "center",
   }}
 >
-  {/* Test name */}
+
   <Typography variant="h4" fontWeight="bold" sx={{ flex: 1, textAlign: "left" }}>
     {testData.test.name}
   </Typography>
 
-  {/* Total time left */}
+
   <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mr: 3 }}>
     <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
       Test Time Left
@@ -1115,7 +1110,7 @@ return (
   mb={2}
   gap={2}
 >
-  {/* Previous Button – afișat doar dacă nu suntem la prima întrebare */}
+
   {currentQuestion !== 0 ? (
     <Button
       variant="outlined"
@@ -1134,10 +1129,10 @@ return (
       Previous
     </Button>
   ) : (
-    <Box width="200px" /> // placeholder ca să păstrezi alinierea
+    <Box width="200px" /> 
   )}
 
-  {/* End Test Button – mereu afișat */}
+
   <Button
     variant="outlined"
     color="warning"
@@ -1181,7 +1176,7 @@ return (
     flexDirection: "column",
   }}
 >
-  {/* Task Title */}
+
 <Stack spacing={1} mb={2}>
   <Typography
     variant="subtitle2"
@@ -1206,7 +1201,7 @@ return (
 
 
 
-  {/* Multiple Choice */}
+
 {q.category === "multiple_choice" && (
   <>
     {(q.options || []).map((choice, i) => (
@@ -1290,7 +1285,7 @@ return (
 )}
 
 
-  {/* Free Answer */}
+
   {q.category === "free_answer" && (
     <>
       <TextField
@@ -1356,10 +1351,9 @@ return (
     </>
   )}
 
-  {/* Coding */}
   {q.category === "coding" && (
     <>
-      {/* Sample Test Cases */}
+
   {q.sample_input?.length > 0 && (
   <>
     <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 2, mb: 1 }}>
@@ -1391,7 +1385,7 @@ return (
 
 
 
-      {/* Code Editor */}
+ 
 
 
 <MonacoEditor
@@ -1446,7 +1440,7 @@ return (
 
 
 
-    {/* Input Section */}
+  
     <Box sx={{ mt: 2 }}>
       <Typography variant="subtitle2" fontWeight={600} mb={1}>
         Input
@@ -1484,7 +1478,7 @@ return (
       </Box>
     </Box>
 
-    {/* Output Section */}
+
     <Box sx={{ mt: 2 }}>
       <Typography variant="subtitle2" fontWeight={600} mb={1}>
         Output
@@ -1499,10 +1493,10 @@ return (
       />
     </Box>
 
-    {/* Feedback or Results */}
+
     <Box
   mt={2}
-  sx={{ minHeight: '36px' }} // ajustează după înălțimea necesară
+  sx={{ minHeight: '36px' }} 
 >
   {isSubmitting ? (
     <Stack direction="row" alignItems="center" spacing={1}>
@@ -1522,7 +1516,7 @@ return (
 </Box>
 
 
-    {/* Submit Button with Tooltip */}
+ 
     <Tooltip
       title={
         results?.[currentQuestion]?.passed === true
@@ -1567,12 +1561,12 @@ return (
 )}
 
 
-      {/* Snackbar for notifications */}
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }} // Snackbar at the top
+        anchorOrigin={{ vertical: "top", horizontal: "center" }} 
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
           {snackbar.message}

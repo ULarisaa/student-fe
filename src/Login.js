@@ -17,52 +17,53 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setFeedback('');
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError('');
+  setFeedback('');
 
-    if (!email || !password) {
-      setError('Both fields are required');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5000/user/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include',  
-  body: JSON.stringify({ email, password }),
-});
-
-
-      const data = await response.json();
-      console.log(data);
-if (data.success) {
-  console.log('Login success:', data);
-  localStorage.setItem('accessToken', data.token);
-  if (data.refreshToken) {
-    localStorage.setItem('refreshToken', data.refreshToken);
+  if (!email || !password) {
+    setError('Both fields are required');
+    return;
   }
-  localStorage.setItem('Name', `${data.firstName} ${data.lastName}`);
 
-  console.log('User role:', data.role);
+  try {
+    const response = await fetch('http://localhost:5000/user/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (data.role === 'Student') {
-    navigate('/StudentDashboard');
-  } else if (data.role === 'Teacher') {
-    navigate('/TeacherDashboard');
-  } else {
-    console.error('Unknown user role:', data.role);
-  }
-} else {
-  setError(data.message || 'Login failed');
-}
+    const data = await response.json();
+    console.log(data);
+    console.log('firstLogin:', data.firstLogin);
 
-    } catch (err) {
-      setError('Error logging in');
+
+    if (data.success) {
+      localStorage.setItem('accessToken', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
+      localStorage.setItem('Name', `${data.firstName} ${data.lastName}`);
+
+      if (data.firstLogin) {
+
+        navigate(`/reset-password?firstTime=true&token=${encodeURIComponent(data.token)}`);
+      } else if (data.role === 'Student') {
+        navigate('/StudentDashboard');
+      } else if (data.role === 'Teacher') {
+        navigate('/TeacherDashboard');
+      } else {
+        console.error('Unknown user role:', data.role);
+      }
+    } else {
+      setError(data.message || 'Login failed');
     }
-  };
+  } catch (err) {
+    setError('Error logging in');
+  }
+};
 
  const handleResetPassword = async () => {
   setError('');
@@ -99,7 +100,7 @@ if (data.success) {
 
  return (
   <Box display="flex" minHeight="100vh">
-    {/* Left side with logo */}
+ 
     <Box
       flex={1}
       display="flex"
@@ -119,7 +120,7 @@ if (data.success) {
    
     </Box>
 
-    {/* Right side with login form */}
+
     <Box
   flex={1}
   display="flex"
@@ -127,7 +128,7 @@ if (data.success) {
   justifyContent="center"
   sx={{
     backgroundColor: '#ffffff',
-    minHeight: '100vh', // Ensure it fills the full height of the viewport
+    minHeight: '100vh',
   }}
 >
   <Paper
@@ -139,10 +140,10 @@ if (data.success) {
       borderRadius: 3,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center', // Center content horizontally inside Paper
+      alignItems: 'center', 
     }}
   >
-    {/* Feedback and Error */}
+
     {feedback && (
       <Alert severity="success" sx={{ mb: 2, width: '100%' }}>
         {feedback}

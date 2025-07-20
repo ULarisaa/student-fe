@@ -26,20 +26,11 @@ const navigate = useNavigate();
     }));
   };
 
-  // Handle form submission using fetch instead of axios
+
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  const token = localStorage.getItem('token');
 
-  if (!token) {
-    setSnackbar({
-      open: true,
-      message: 'You must be logged in to create a course!',
-      severity: 'error',
-    });
-    return;
-  }
 
   try {
    const response = await fetchWithRefresh('http://localhost:5000/course', {
@@ -102,7 +93,7 @@ const isFormValid = formData.name.trim() !== '' &&
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={4}>
-              {/* Course Name */}
+
               <Grid item xs={12}>
                 <TextField
                   label="Course Name"
@@ -113,7 +104,7 @@ const isFormValid = formData.name.trim() !== '' &&
                   onChange={handleInputChange}
                   required
                   InputLabelProps={{
-                    style: { color: '#1976d2' }, // Make the label text color blue
+                    style: { color: '#1976d2' }, 
                   }}
                   sx={{
                     borderRadius: 2,
@@ -125,7 +116,7 @@ const isFormValid = formData.name.trim() !== '' &&
                 />
               </Grid>
 
-              {/* Description */}
+  
               <Grid item xs={12}>
                 <TextField
                   label="Description"
@@ -138,7 +129,7 @@ const isFormValid = formData.name.trim() !== '' &&
                   rows={4}
                   required
                   InputLabelProps={{
-                    style: { color: '#1976d2' }, // Make the label text color blue
+                    style: { color: '#1976d2' }, 
                   }}
                   sx={{
                     borderRadius: 2,
@@ -150,7 +141,7 @@ const isFormValid = formData.name.trim() !== '' &&
                 />
               </Grid>
 
-              {/* Semester Dropdown */}
+
               <Grid item xs={12}>
                 <FormControl fullWidth>
                   <InputLabel sx={{ color: '#1976d2' }}>Semester</InputLabel>
@@ -174,7 +165,7 @@ const isFormValid = formData.name.trim() !== '' &&
                 </FormControl>
               </Grid>
 
-              {/* Active Status */}
+
               <Grid item xs={12}>
                 <FormControlLabel
                   control={
@@ -192,14 +183,14 @@ const isFormValid = formData.name.trim() !== '' &&
                 />
               </Grid>
 
-              {/* Submit Button with Icon */}
+  
               <Grid item xs={12}>
                <Button
   variant="contained"
   color="primary"
   type="submit"
   fullWidth
-  disabled={!isFormValid} // 🔒 dezactivat dacă nu e valid
+  disabled={!isFormValid} 
   sx={{
     backgroundColor: '#1976d2',
     '&:hover': { backgroundColor: '#1565c0' },

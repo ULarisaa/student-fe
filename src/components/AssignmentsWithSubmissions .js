@@ -34,14 +34,14 @@ export default function AssignmentsWithSubmissions({
 
     setAssignments(assignmentsData);
 
-    // Construim un map: assignmentId => lista de studenti cu info submit (sau fara)
+ 
     const assignmentMap = {};
 
     assignmentsData.forEach((assignment) => {
       assignmentMap[assignment.id] = { students: [] };
 
       studentsData.students.forEach((student) => {
-        // cautam submissia studentului pentru assignment-ul curent
+
         const submission = student.submissions.find(sub => sub.assignmentId === assignment.id);
 
         assignmentMap[assignment.id].students.push({
@@ -102,7 +102,7 @@ const goToSubmissionPage = (assignmentId, studentId) => {
               ":hover": { boxShadow: 6, backgroundColor: "#f5f5f5" },
             }}
           >
-            {/* Header: Title + Edit */}
+ 
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="subtitle1" fontWeight="bold">
                 {assignment.title}
@@ -117,13 +117,13 @@ const goToSubmissionPage = (assignmentId, studentId) => {
               </IconButton>
             </Box>
 
-            {/* Description and Due Date */}
+ 
             <Typography color="text.secondary">
               Due Date: {new Date(assignment.due_date).toLocaleString()}
             </Typography>
             <Typography mt={1}>{assignment.description}</Typography>
 
-            {/* Toggle submissions button */}
+     
             <Button
               size="small"
               variant="text"
@@ -135,7 +135,7 @@ const goToSubmissionPage = (assignmentId, studentId) => {
                 : "Show student submissions"}
             </Button>
 
-            {/* Students submissions list */}
+      
            {expandedAssignmentIds[assignment.id] && (
   <Box mt={1} ml={1}>
     {assignmentStudents[assignment.id]?.students?.length ? (
@@ -148,9 +148,9 @@ const goToSubmissionPage = (assignmentId, studentId) => {
             p: 1,
             backgroundColor:
               student.status.toLowerCase() === "submitted"
-        ? "#e0f7fa" // albastru deschis pentru "submitted"
+        ? "#e0f7fa" 
         : student.status.toLowerCase() === "graded"
-        ? "#e8f5e9" // verde deschis pentru "graded"
+        ? "#e8f5e9" 
         : "#fff3e0", 
             borderRadius: 1,
             mb: 0.5,

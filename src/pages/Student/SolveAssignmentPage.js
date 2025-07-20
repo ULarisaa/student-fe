@@ -18,6 +18,7 @@ import {
   CardContent,
   Link,
   IconButton,
+  Avatar
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useParams } from "react-router-dom";
@@ -42,7 +43,7 @@ const AssignmentPage = () => {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [duePassed, setDuePassed] = useState(false);
 
-  // New states for grading, status, comments, and last modified
+
   const [grade, setGrade] = useState(null);
   const [submissionStatus, setSubmissionStatus] = useState("No submissions yet");
   const [lastModified, setLastModified] = useState(null);
@@ -66,7 +67,7 @@ const showTemporaryStatus = (message, duration = 3000) => {
 
 useEffect(() => {
   const fetchSubmission = async () => {
-    const token = localStorage.getItem('token');
+
 
     try {
       const response = await fetchWithRefresh(`http://localhost:5000/assignments/assignment/${assignmentId}/submission`);
@@ -100,7 +101,7 @@ useEffect(() => {
 }, [assignmentId]);
   useEffect(() => {
     const fetchAssignment = async () => {
-      const token = localStorage.getItem("token");
+
 
       try {
        const response = await fetchWithRefresh(`http://localhost:5000/assignments/assignment/${assignmentId}`);
@@ -161,7 +162,7 @@ const handleFileChange = (e) => {
 
   const newFilesArray = Array.from(files);
 
-  // Filtrează noile fișiere să nu includă duplicate față de cele deja adăugate
+
   const filteredNewFiles = newFilesArray.filter((newFile) => {
     return !attachmentFiles.some(
       (existingFile) =>
@@ -169,7 +170,6 @@ const handleFileChange = (e) => {
     );
   });
 
-  // Verificare tipuri fișiere
   for (const file of filteredNewFiles) {
     const fileExt = file.name.split(".").pop().toLowerCase();
     if (allowed.length && !allowed.includes(fileExt)) {
@@ -200,7 +200,7 @@ const handleFileChange = (e) => {
 
   setSelectedFile(filteredNewFiles[filteredNewFiles.length - 1] || null);
 
-  // Reset input ca să poți încărca aceleași fișiere din nou dacă vrei
+
   e.target.value = null;
 };
 
@@ -209,7 +209,6 @@ const handleFileSubmit = async () => {
   setSubmitStatus("");
   setIsSubmitting(true);
 
-  const token = localStorage.getItem("token");
   const existingFileIds = existingFiles.map((f) => f.id);
 console.log(existingFiles);
   try {
@@ -218,7 +217,7 @@ console.log(existingFiles);
      const response = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/delete-submission`, {
   method: "DELETE",
   headers: {
-    "Content-Type": "application/json", // dacă trebuie
+    "Content-Type": "application/json", 
   },
 });
 if (response.ok) {
@@ -234,7 +233,7 @@ showTemporaryStatus("Submission deleted.");
 
 setTimeout(() => {
   window.location.reload();
-}, 2000); // 2 secunde
+}, 2000); 
 
 }
  else {
@@ -242,7 +241,7 @@ setTimeout(() => {
         setSubmitStatus(`Delete error: ${err.error || "Unknown error"}`);
       }
     } else {
-      // Pregătește form data cu fișierele noi + id-urile celor existente
+
       const formData = new FormData();
       attachmentFiles.forEach((file) => formData.append("files", file));
       formData.append("existingFileIds", JSON.stringify(existingFileIds));
@@ -250,7 +249,7 @@ setTimeout(() => {
 
       const response = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/submit-file`, {
   method: "POST",
-  body: formData, // Fără "Content-Type", browser-ul îl pune automat pentru formData
+  body: formData, 
 });
 if (response.ok) {
   const data = await response.json();
@@ -271,7 +270,7 @@ showTemporaryStatus("File submitted successfully!");
 
 setTimeout(() => {
   window.location.reload();
-}, 2000); // 2 secunde înainte de reload
+}, 2000); 
 
 }
  else {
@@ -295,7 +294,7 @@ setTimeout(() => {
     }
 
     setSubmitStatus("");
-    const token = localStorage.getItem("token");
+
 
     try {
     const response = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/submit-test`, {
@@ -326,19 +325,19 @@ setTimeout(() => {
     }
   };
 
-  // Helper to calculate time left or time overdue
+
   const renderTimeLeft = () => {
     const now = new Date();
     const dueDate = new Date(assignment.due_date);
     const diffMs = dueDate - now;
 
     if (diffMs > 0) {
-      // time left
+ 
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
       return `Time left: ${diffDays} day(s) ${diffHours} hour(s)`;
     } else {
-      // overdue
+
       const overdueMs = now - dueDate;
       const overdueDays = Math.floor(overdueMs / (1000 * 60 * 60 * 24));
       const overdueHours = Math.floor((overdueMs / (1000 * 60 * 60)) % 24);
@@ -351,57 +350,58 @@ const handleDeleteFile = (index) => {
   setAttachmentFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
 };
 
-  const token = localStorage.getItem("token");
-
-  useEffect(() => {
-  async function fetchComments() {
-    try {
-      const res = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/comments`);
-      if (res.ok) {
-        const data = await res.json();
-        setComments(data);
-        console.log(data);
-      } else {
-        console.error("Failed to fetch comments");
-      }
-    } catch (err) {
-      console.error("Error fetching comments:", err);
+const fetchComments = async () => {
+  try {
+    const res = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/comments`);
+    if (res.ok) {
+      const data = await res.json();
+      setComments(data);
+    } else {
+      console.error("Failed to fetch comments");
     }
+  } catch (err) {
+    console.error("Error fetching comments:", err);
   }
-  if (assignmentId && token) fetchComments();
-}, [assignmentId, token]);
+};
 
-  const handleCommentSubmit = async () => {
-    if (!newCommentText.trim()) {
-      setCommentError("Comment cannot be empty.");
-      return;
+useEffect(() => {
+  if (assignmentId) {
+    fetchComments();
+  }
+}, [assignmentId]);
+
+const handleCommentSubmit = async () => {
+  if (!newCommentText.trim()) {
+    setCommentError("Comment cannot be empty.");
+    return;
+  }
+  setCommentError("");
+  setCommentSubmitStatus("");
+
+  try {
+    const res = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comment: newCommentText.trim() }),
+    });
+
+    if (res.ok) {
+      const createdComment = await res.json();
+      setNewCommentText("");
+      setCommentSubmitStatus("Comment submitted successfully!");
+      
+      await fetchComments();
+    } else {
+      const errData = await res.json();
+      setCommentSubmitStatus(`Submission error: ${errData.error || "Unknown error"}`);
     }
-    setCommentError("");
-    setCommentSubmitStatus("");
+  } catch (err) {
+    setCommentSubmitStatus("Submission error: " + err.message);
+  }
+};
 
-    try {
-     
-const res = await fetchWithRefresh(`http://localhost:5000/assignments/${assignmentId}/comments`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ comment: newCommentText.trim() }),
-});
 
-      if (res.ok) {
-        const createdComment = await res.json();
-        setComments((prev) => [...prev, createdComment]);
-        setNewCommentText("");
-        setCommentSubmitStatus("Comment submitted successfully!");
-      } else {
-        const errData = await res.json();
-        setCommentSubmitStatus(`Submission error: ${errData.error || "Unknown error"}`);
-      }
-    } catch (err) {
-      setCommentSubmitStatus("Submission error: " + err.message);
-    }
-  };
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
@@ -423,7 +423,7 @@ const res = await fetchWithRefresh(`http://localhost:5000/assignments/${assignme
   }
 
   const downloadFileAssignment = async (file) => {
-  const token = localStorage.getItem('token'); // or wherever you store the JWT
+
 
   try {
     
@@ -435,11 +435,10 @@ const response = await fetchWithRefresh(`http://localhost:5000/assignments/attac
 
     const blob = await response.blob();
 
-    // Create a URL for the blob and click a hidden link to download it
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = file.file_name; // use actual file name
+    a.download = file.file_name; 
     console.log(file.file_name);
 
     document.body.appendChild(a);
@@ -453,7 +452,7 @@ const response = await fetchWithRefresh(`http://localhost:5000/assignments/attac
 
 
   const downloadFileSubmission = async (file) => {
-  const token = localStorage.getItem('token'); // or wherever you store the JWT
+
 
   try {
    const response = await fetchWithRefresh(`http://localhost:5000/assignments/submission-files/${file.id}`);
@@ -463,11 +462,11 @@ const response = await fetchWithRefresh(`http://localhost:5000/assignments/attac
 
     const blob = await response.blob();
 
-    // Create a URL for the blob and click a hidden link to download it
+ 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = file.file_name; // use actual file name
+    a.download = file.file_name; 
     console.log(file.file_name);
 
     document.body.appendChild(a);
@@ -549,7 +548,7 @@ return (
           </Box>
         </Stack>
 
-        {/* Description Card */}
+
         <Card
           elevation={3}
           sx={{
@@ -612,7 +611,7 @@ return (
             lineHeight: 1.6,
           }}
         >
-        {/* Submission Section */}
+
      {assignment.answer_type === 'file' ? (
   <>
     {hasSubmitted && !editing ? (
@@ -679,9 +678,9 @@ return (
         Deadline has passed and no file was submitted.
       </Alert>
     ) : (
-      // Modul editare sau dacă încă nu a fost trimis și deadline-ul nu a trecut
+
       <Stack spacing={2} mb={3}>
-        {/* Drag & Drop zone */}
+
         <Box
           onDrop={(e) => {
             e.preventDefault();
@@ -788,7 +787,7 @@ return (
     backgroundColor: '#1565c0',
     '&:hover': { backgroundColor: '#0d47a1' },
     fontWeight: 600,
-    opacity: isSubmitting ? 0.7 : 1, // opțional, să arate că e dezactivat
+    opacity: isSubmitting ? 0.7 : 1, 
   }}
 >
   {isSubmitting ? "Submitting..." : hasSubmitted ? 'Save Changes' : 'Submit Answer'}
@@ -814,7 +813,7 @@ return (
     )}
   </>
 ) : assignment.answer_type === 'text' ? (
-  // restul codului
+
 
           <>
             {hasSubmitted && !duePassed ? (
@@ -835,7 +834,7 @@ return (
                   value={textAnswer}
                   onChange={(e) => {
                     setTextAnswer(e.target.value);
-                    // Clear error on change
+    
                     setTextError('');
                   }}
                   disabled={duePassed}
@@ -883,14 +882,13 @@ return (
           </Typography>
         )}
 </Card>
-        {/* Divider */}
+
         <Divider sx={{ my: 5 }} />
 
-        {/* Submission Info + Time Info Table */}
           <TableContainer component={Paper} elevation={3} sx={{ mb: 5, borderRadius: 2 }}>
         <Table>
           <TableBody>
-            {/* Submission Status */}
+
             <TableRow>
               <TableCell
                 colSpan={2}
@@ -916,7 +914,7 @@ return (
               </TableCell>
             </TableRow>
       
-            {/* Due Date */}
+
             <TableRow>
               <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc', width: 160 }}>
                 Due Date
@@ -926,7 +924,7 @@ return (
               </TableCell>
             </TableRow>
       
-           {/* Submitted At */}
+
       {(submission?.status === 'submitted' || submission?.status === 'graded') && submission.submittedAt && (
         <TableRow>
           <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc' }}>
@@ -938,13 +936,12 @@ return (
         </TableRow>
       )}
       
-            {/* Time Left */}
+
             <TableRow>
               <TableCell sx={{ fontWeight: 700, backgroundColor: '#f7f9fc' }}>Time Left</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>{renderTimeLeft()}</TableCell>
             </TableRow>
-      
-          {/* Grade */}
+
 <TableRow>
   <TableCell
     sx={{
@@ -964,7 +961,7 @@ return (
   </TableCell>
 </TableRow>
 
-{/* Feedback */}
+
 <TableRow>
   <TableCell
     sx={{
@@ -988,71 +985,118 @@ return (
         </Table>
       </TableContainer>
       
-        {/* Comments Section */}
-      <Card elevation={3} sx={{ p: 3, borderRadius: 3, backgroundColor: "#f9fbfd" }}>
-      <Box sx={{ mt: 1 }}>
-        <Typography variant="h6" gutterBottom>
-          Comments
-        </Typography>
+     <Card elevation={3} sx={{ p: 3, borderRadius: 3, backgroundColor: "#f9fbfd" }}>
+  <Box sx={{ mt: 1 }}>
+    <Typography variant="h6" gutterBottom>
+      Comments
+    </Typography>
 
-        {comments && comments.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            No comments yet.
-          </Typography>
-        ) : (
-          comments.map((c) => (
-            <Card key={c.id} variant="outlined" sx={{ mb: 1, p: 1, bgcolor: "#f9f9f9" }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+    {(!comments || comments.length === 0) ? (
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        No comments yet.
+      </Typography>
+    ) : (
+      comments.map((c, index) => (
+        <Card
+          key={index}
+          variant="outlined"
+          sx={{
+            mb: 1,
+            p: 1.5,
+            bgcolor: "#f9f9f9",
+            borderRadius: 1,
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexGrow={1}
+              minWidth={0}
+            >
+              <Avatar
+                alt={c.author_name}
+                src={c.author_avatar_url || ""}
+                sx={{ width: 28, height: 28 }}
+              />
+              <Typography
+                variant="body2"
+                fontWeight="600"
+                noWrap
+                sx={{ minWidth: 0 }}
+              >
                 {c.author_name}
               </Typography>
-              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                {c.comment_text}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {new Date(c.created_at).toLocaleString()}
-              </Typography>
-            </Card>
-          ))
-        )}
-
-        <Box sx={{ mt: 3 }}>
-          <TextField
-            label="Add a comment"
-            multiline
-            minRows={3}
-            fullWidth
-            value={newCommentText}
-            onChange={(e) => {
-              setNewCommentText(e.target.value);
-              setCommentError("");
-              setCommentSubmitStatus("");
-            }}
-            error={!!commentError}
-            helperText={commentError}
-          />
-          <Button
-            variant="contained"
-            onClick={handleCommentSubmit}
-            sx={{ mt: 1, fontWeight: 600 }}
-            disabled={!newCommentText.trim()}
-          >
-            Submit Comment
-          </Button>
-          {commentSubmitStatus && (
+            </Stack>
             <Typography
-              variant="body2"
-              sx={{
-                mt: 1,
-                fontWeight: 600,
-                color: commentSubmitStatus.includes("success") ? "success.main" : "error.main",
-              }}
+              variant="caption"
+              color="text.secondary"
+              sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
             >
-              {commentSubmitStatus}
+              {new Date(c.created_at).toLocaleString()}
             </Typography>
-          )}
-        </Box>
-      </Box>
-    </Card>
+          </Stack>
+
+          <Typography
+            variant="body2"
+            sx={{ mt: 1, whiteSpace: "pre-line", pl: 5 }}
+          >
+            {c.comment_text}
+          </Typography>
+        </Card>
+      ))
+    )}
+
+
+    <Box mt={2} display="flex" gap={1}>
+      <TextField
+        size="small"
+        fullWidth
+        multiline
+        minRows={1}
+        maxRows={4}
+        placeholder="Write a comment..."
+        value={newCommentText}
+        onChange={(e) => {
+          setNewCommentText(e.target.value);
+          setCommentError("");
+          setCommentSubmitStatus("");
+        }}
+        error={!!commentError}
+        helperText={commentError}
+      />
+      <Button
+        variant="contained"
+        onClick={handleCommentSubmit}
+        disabled={!newCommentText.trim()}
+      >
+        Send
+      </Button>
+    </Box>
+
+    {commentSubmitStatus && (
+      <Typography
+        variant="body2"
+        sx={{
+          mt: 1,
+          fontWeight: 600,
+          color: commentSubmitStatus.includes("success")
+            ? "success.main"
+            : "error.main",
+        }}
+      >
+        {commentSubmitStatus}
+      </Typography>
+    )}
+  </Box>
+</Card>
+
       </CardContent>
     </Card>
   </Box>

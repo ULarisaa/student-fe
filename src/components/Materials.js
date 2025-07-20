@@ -11,17 +11,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
-  Card,
-  CardContent,
-  Divider,
   Stack,
   TextField,
   Snackbar,
   Alert,
 } from "@mui/material";
-import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -39,7 +34,7 @@ function formatBytes(bytes, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-export default function CoursePostsWithFiles() {
+export default function CoursePostsWithFiles({ onRefreshCourseData }) {
   const { courseId } = useParams();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,13 +104,14 @@ const handleUpload = async (e) => {
 
   setTimeout(() => {
     setUploadSuccess('');
-    fetchPosts();  // apelul după ce dispare mesajul
+    onRefreshCourseData();
+    fetchPosts();  
   }, 3000);
 } else {
   setUploadError('Upload failed.');
   setTimeout(() => {
     setUploadError('');
-    // opțional, aici poți face alte acțiuni după ce dispare eroarea
+
   }, 3000);
 }
   }
@@ -124,7 +120,7 @@ catch (error) {
   setUploadError('An error occurred during upload.');
   setTimeout(() => {
     setUploadError('');
-    // eventual aici poți face alte acțiuni dacă vrei
+
   }, 3000);
 }
 
@@ -208,17 +204,20 @@ const handleConfirmDelete = async () => {
       throw new Error(`Failed to delete file (status ${res.status})`);
     }
 
+
     setPosts((prev) => prev.filter((p) => p.id !== deleteDialog.file.id));
     setDeleteDialog({ open: false, file: null });
 
-    // Afișează snackbar de succes
+
+    if (onRefreshCourseData) onRefreshCourseData();
+    fetchPosts();
+
     setSnackbar({
       open: true,
       message: "File deleted successfully.",
       severity: "success",
     });
   } catch (error) {
-    // Afișează snackbar de eroare
     setSnackbar({
       open: true,
       message: "Error deleting file: " + error.message,
@@ -240,7 +239,7 @@ const handleConfirmDelete = async () => {
 
   return (
     <Box sx={{ px: 2 }}>
-      {/** Upload form */}
+
  <Box p={3} mb={4} border="1px solid #ddd" borderRadius={3} boxShadow={1}>
   <Typography variant="h6" fontWeight="bold" mb={2}>
     Upload Materials 

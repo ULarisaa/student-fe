@@ -14,7 +14,7 @@ import {
   Button,
 } from "@mui/material";
 
-import logo from "../../assets/logo.png"; // import your logo here
+import logo from "../../assets/logo.png"; 
 
 import CoursePage from "./CoursePage"; 
 import ReportPage from "./ReportPage"; 
@@ -85,9 +85,9 @@ const handleLogout = async () => {
   } catch (err) {
     console.error("Logout failed", err);
   } finally {
-    localStorage.clear(); // curăță toate datele din localStorage
-    setTeacherName("Teacher"); // resetează starea locală
-    navigate("/", { replace: true }); // navighează la pagina principală
+    localStorage.clear();
+    setTeacherName("Teacher"); 
+    navigate("/", { replace: true }); 
   }
 };
   return (
@@ -112,7 +112,7 @@ const handleLogout = async () => {
           },
         }}
       >
-        {/* Top part: logo + menu */}
+
         <Box>
           <Box
             sx={{
@@ -143,7 +143,7 @@ const handleLogout = async () => {
           <List>
            
 
-            {/* Menu Items */}
+ 
             {[
                { text: "Profile", link: "/TeacherDashboard/profile", icon: <User size={20} /> },
               { text: "Dashboard", link: "/TeacherDashboard", icon: <LayoutDashboard size={20} /> },
@@ -173,10 +173,10 @@ const handleLogout = async () => {
     </Box>
       </Drawer>
 
-      {/* Main Content */}
+
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Routes>
-          {/* Dashboard */}
+
           <Route
             path="/"
             element={
@@ -185,7 +185,6 @@ const handleLogout = async () => {
                   Welcome, {teacherName}!
                 </Typography>
 
-                {/* Quick Stats */}
                 <Box
                   sx={{
                     display: "grid",
@@ -224,7 +223,7 @@ const handleLogout = async () => {
                   ))}
                 </Box>
 
-                {/* Courses Overview */}
+
                 <Box mt={5}>
                   <Typography variant="h5" fontWeight="bold">
                     Your Courses
@@ -291,7 +290,7 @@ const handleLogout = async () => {
             }
           />
 
-          {/* Other routes */}
+
          <Route path="/profile" element={<TeacherProfile />} />
           <Route path="/courses/:courseId" element={<CoursePage />} />
           <Route path="/courses/:courseId/create-test" element={<CreateTest />} />

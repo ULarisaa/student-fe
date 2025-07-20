@@ -97,7 +97,7 @@ export default function CoursePostsStudentDropdown({ courseId }) {
 
   return (
     <Box mt={4}>
-      {/* Header */}
+
       <Box
         display="flex"
         alignItems="center"
@@ -129,7 +129,7 @@ export default function CoursePostsStudentDropdown({ courseId }) {
         />
       </Box>
 
-      {/* Posts content */}
+
       <Collapse in={open}>
         <Box mt={2}>
           {loading ? (
@@ -158,7 +158,7 @@ export default function CoursePostsStudentDropdown({ courseId }) {
                 }}
               >
                 <CardContent>
-                  {/* Post header with avatar, author name, and date aligned */}
+
                   <Stack
                     direction="row"
                     spacing={2}
@@ -186,7 +186,7 @@ export default function CoursePostsStudentDropdown({ courseId }) {
                     </Typography>
                   </Stack>
 
-                  {/* Post title */}
+
                   <Typography
                     variant="h6"
                     fontWeight="bold"
@@ -197,7 +197,6 @@ export default function CoursePostsStudentDropdown({ courseId }) {
                     {post.title}
                   </Typography>
 
-                  {/* Post content */}
                   <Typography variant="body1" sx={{ whiteSpace: "pre-line", mb: 3 }}>
                     {post.content}
                   </Typography>
@@ -284,7 +283,7 @@ export default function CoursePostsStudentDropdown({ courseId }) {
                         </>
                       )}
 
-                      {/* Add new comment */}
+  
                       <Box mt={2} display="flex" gap={1}>
                         <TextField
                           size="small"

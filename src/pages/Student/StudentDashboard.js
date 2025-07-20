@@ -15,11 +15,11 @@ import { fetchWithRefresh } from "../../utils/fetchWithRefresh";
 export default function StudentDashboard() {
   const [stats, setStats] = useState({
     courses: 0,
-    upcomingTests: 3, // Static for now, you can modify this based on upcoming exams
+    upcomingTests: 3,
   });
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [studentName, setStudentName] = useState("Student");
-  const [loading, setLoading] = useState(true); // State for loading
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,7 +48,8 @@ export default function StudentDashboard() {
       } catch (error) {
         console.error("Error fetching enrolled courses:", error);
       } finally {
-        setLoading(false); // Set loading to false once data is fetched
+        setLoading(false); 
+
       }
     };
 
@@ -67,9 +68,9 @@ const handleLogout = async () => {
   } catch (err) {
     console.error("Logout failed", err);
   } finally {
-    localStorage.clear(); // curăță toate datele din localStorage
-    setStudentName("Student"); // resetează starea locală
-    navigate("/", { replace: true }); // navighează la pagina principală
+    localStorage.clear(); 
+    setStudentName("Student"); 
+    navigate("/", { replace: true }); 
   }
 };
 
@@ -97,7 +98,7 @@ return (
         },
       }}
     >
-      {/* Logo + meniul de sus */}
+
       <Box>
         <Box
   sx={{
@@ -143,7 +144,7 @@ return (
         </List>
       </Box>
 
-      {/* Butonul de logout jos */}
+
      <Box>
       <List>
         <ListItem disablePadding>

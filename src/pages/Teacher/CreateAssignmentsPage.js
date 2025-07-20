@@ -59,7 +59,7 @@ const CreateAssignment = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  // Append new files instead of replacing existing files
+
   const handleFileChange = (event) => {
     if (event.target.files) {
       setAttachmentFiles((prevFiles) => [
@@ -69,7 +69,7 @@ const CreateAssignment = () => {
     }
   };
 
-  // Remove a single file by index
+
   const handleDeleteFile = (index) => {
     setAttachmentFiles((prevFiles) =>
       prevFiles.filter((_, i) => i !== index)
@@ -86,7 +86,7 @@ const CreateAssignment = () => {
   };
 
  const handleSubmit = async () => {
-  const token = localStorage.getItem("token");
+
 
   if (
     answerType === "file" &&
@@ -126,10 +126,10 @@ const CreateAssignment = () => {
   `http://localhost:5000/assignments/${courseId}/create`,
   {
     method: "POST",
-    body: formData, // don't set Content-Type; browser sets it automatically for FormData
+    body: formData,
   }
 );
-
+console.log(formData);
 
     if (response.ok) {
       setSnackbar({
@@ -169,7 +169,7 @@ const CreateAssignment = () => {
 
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             <Grid container spacing={4}>
-              {/* Assignment Title */}
+     
               <Grid item xs={12}>
                 <TextField
                   label="Assignment Title"
@@ -189,7 +189,7 @@ const CreateAssignment = () => {
                 />
               </Grid>
 
-              {/* Start Date and Time */}
+ 
               <Grid item xs={12} sm={6}>
                 <TextField
                   label="Start Date and Time"
@@ -210,7 +210,7 @@ const CreateAssignment = () => {
                 />
               </Grid>
 
-              {/* Due Date and Time */}
+          
               <Grid item xs={12} sm={6}>
                 <TextField
                   label="Due Date and Time"
@@ -231,7 +231,7 @@ const CreateAssignment = () => {
                 />
               </Grid>
 
-              {/* Description / Instructions */}
+    
               <Grid item xs={12}>
                 <TextField
                   label="Description / Instructions"
@@ -251,7 +251,7 @@ const CreateAssignment = () => {
                 />
               </Grid>
 
-              {/* Answer Type */}
+      
               <Grid item xs={12}>
                 <TextField
                   select
@@ -278,7 +278,6 @@ const CreateAssignment = () => {
                 </TextField>
               </Grid>
 
-              {/* File type options only if answerType === "file" */}
             {answerType === 'file' && (
   <>
     <Grid item xs={12}>
@@ -348,7 +347,7 @@ const CreateAssignment = () => {
   </>
 )}
 
-              {/* File Attachments Drag and Drop */}
+ 
               <Grid item xs={12}>
                 <Box
                   onDrop={(e) => {
@@ -422,7 +421,7 @@ const CreateAssignment = () => {
                 </Box>
               </Grid>
 
-              {/* Submit Button */}
+
               <Grid item xs={12}>
                 <Button
                   variant="contained"

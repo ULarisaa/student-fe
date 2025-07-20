@@ -12,14 +12,14 @@ import {
 } from "@mui/material";
 import { fetchWithRefresh } from "../utils/fetchWithRefresh";
 
-export default function CoursePosts({ courseId }) {
+export default function CoursePostsWithFiles({ onRefreshCourseData, courseId }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState({});
   const [newComments, setNewComments] = useState({});
-  const [expandedComments, setExpandedComments] = useState({}); // ține dacă e extins per post
+  const [expandedComments, setExpandedComments] = useState({}); 
 
-  // Pentru adăugare postare nouă
+
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostAllowComments, setNewPostAllowComments] = useState(true);
@@ -54,7 +54,7 @@ useEffect(() => {
 }, [courseId, fetchPosts]);
 
 
-  // Funcții pentru comentarii
+
   const handleCommentChange = (postId, value) => {
     setNewComments((prev) => ({ ...prev, [postId]: value }));
 
@@ -80,18 +80,18 @@ useEffect(() => {
 
     const savedComment = await res.json();
 
-    // adaugă comentariul la lista existentă
+
     setComments((prev) => ({
       ...prev,
       [postId]: [...(prev[postId] || []), savedComment],
     }));
 
-    // goliște inputul
+
     setNewComments((prev) => ({ ...prev, [postId]: "" }));
   
   } catch (err) {
     console.error("Failed to submit comment:", err.message);
-    // poți adăuga și o notificare vizuală dacă vrei
+
   }
 };
 
@@ -102,7 +102,7 @@ useEffect(() => {
     }));
   };
 
-  // Funcție pentru adăugarea postării noi
+
 const handleAddPost = async () => {
   if (!newPostTitle.trim() || !newPostContent.trim()) {
     setAddPostError("Title and content are required.");
@@ -134,15 +134,17 @@ const handleAddPost = async () => {
 
     const createdPost = await res.json();
 
-    setNewPostTitle("");
-    setNewPostContent("");
-    setNewPostAllowComments(true);
+   
     setAddPostSuccess("Post added successfully!");
 
-    // după 3 secunde ascunde mesajul și apoi reîncarcă postările
+
     setTimeout(() => {
       setAddPostSuccess(null);
-      fetchPosts();  // presupun că fetchPosts este disponibilă în scope (ex: definită cu useCallback sau în componentă)
+       setNewPostTitle("");
+    setNewPostContent("");
+    setNewPostAllowComments(true);
+    onRefreshCourseData();
+      fetchPosts();  
     }, 3000);
   } catch (error) {
     setAddPostError(error.message);
@@ -168,7 +170,7 @@ const handleAddPost = async () => {
         <Typography sx={{ px: 2, py: 1 }} textAlign="center" color="text.secondary">
           No posts available for this course.
         </Typography>
-        {/* Afișăm și formularul pentru adăugare postare nouă */}
+
         {renderAddPostForm()}
       </Box>
     );
@@ -259,7 +261,7 @@ function renderAddPostForm() {
     }}
   >
     <CardContent>
-      {/* Post header with avatar, author name, and date aligned */}
+
       <Stack
         direction="row"
         spacing={2}
@@ -285,7 +287,7 @@ function renderAddPostForm() {
 
   
 
-      {/* Post content */}
+
       <Typography variant="body1" sx={{ whiteSpace: "pre-line", mb: 3 }}>
         {post.content}
       </Typography>
@@ -378,7 +380,7 @@ function renderAddPostForm() {
             </>
           )}
 
-          {/* Add new comment */}
+
           <Box mt={2} display="flex" gap={1}>
             <TextField
               size="small"

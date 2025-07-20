@@ -27,7 +27,6 @@ const TeacherProfile = () => {
 
   const [profilePic, setProfilePic] = useState(null);
 
-  // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -77,7 +76,7 @@ const handlePasswordChange = () => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ oldPassword, newPassword }),
-    credentials: "include", // dacă refresh token-ul e în cookie, trimite-l
+    credentials: "include", 
   })
     .then((res) => res.json())
     .then((data) => {
@@ -98,7 +97,7 @@ const handlePasswordChange = () => {
       return;
     }
 
-    // Simulez trimiterea mesajului (sau apelezi API-ul real)
+
     handleOpenSnackbar("Your message has been sent to the admin.", "success");
     setMessage("");
   };
@@ -116,7 +115,7 @@ const handlePasswordChange = () => {
 
   return (
     <Box sx={{ mx: "auto" }}>
-      {/* Profile Header */}
+
       <Card sx={{ mb: 4 }}>
         <CardHeader title="Teacher Profile" />
         <CardContent>
@@ -142,7 +141,7 @@ const handlePasswordChange = () => {
         </CardContent>
       </Card>
 
-      {/* Change Password */}
+
       <Card sx={{ mb: 4 }}>
         <CardHeader title="Change Password" />
         <CardContent>
@@ -172,7 +171,7 @@ const handlePasswordChange = () => {
         </CardContent>
       </Card>
 
-      {/* Contact Admin */}
+
       <Card>
         <CardHeader title="Contact Admin" />
         <CardContent>
@@ -195,7 +194,7 @@ const handlePasswordChange = () => {
         </CardContent>
       </Card>
 
-      {/* Snackbar */}
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

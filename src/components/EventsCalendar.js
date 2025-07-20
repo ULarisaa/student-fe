@@ -92,31 +92,31 @@ const firstDay = (firstDayRaw + 6) % 7;
 
   if (event.type === 'Assignment') {
     if (event.status === 'graded') {
-      // Verde chiar și dacă e în următoarele 24h
+
       backgroundColor = '#4caf50';
       textColor = 'white';
     } else if (hoursUntilStart > 24) {
-      backgroundColor = '#ff9800'; // portocaliu assignment viitor
+      backgroundColor = '#ff9800'; 
       textColor = 'white';
     } else if (hoursUntilStart <= 0) {
-      backgroundColor = '#ffcc80'; // portocaliu deschis assignment trecut
+      backgroundColor = '#ffcc80'; 
       textColor = 'white';
     } else {
-      backgroundColor = '#f44336'; // roșu assignment în urm 24h
+      backgroundColor = '#f44336'; 
       textColor = 'white';
     }
   }
 
   if (event.type === 'Test') {
     if (hoursUntilEnd <= 24 && hoursUntilEnd > 0) {
-      // roșu test în curs/pe final
+
       backgroundColor = '#f44336';
       textColor = 'white';
     } else if (hoursUntilEnd <= 0) {
-      backgroundColor = '#90caf9'; // test trecut
+      backgroundColor = '#90caf9'; 
       textColor = 'white';
     } else {
-      backgroundColor = '#1976d2'; // test viitor normal
+      backgroundColor = '#1976d2'; 
       textColor = 'white';
     }
   }

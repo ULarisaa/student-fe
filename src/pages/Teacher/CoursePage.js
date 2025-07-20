@@ -13,7 +13,7 @@ import {
   Tabs,
   Tab,
   Box,
-  Modal, Chip
+  Modal, Snackbar, Alert
 } from "@mui/material";
 import { ExpandMore, Edit} from "@mui/icons-material";
 import { Check, X, FileText, Edit2 } from "lucide-react";
@@ -109,74 +109,80 @@ function StudentItem({ student, expandedGrades, toggleExpandGrades }) {
 
       <Divider sx={{ my: 1 }} />
 
-      {expandedGrades === student.id && (
-        <>
-     <List dense>
-  {student.submissions.map((sub) => {
-    const { label, color } = getStatusLabel(sub);
-    const gradeIsNull = sub.grade === null || sub.grade === undefined;
-    const viewButtonText = sub.type === "test" ? "Show Report" : "Show Submission";
-const studentId = student.user?.id ?? student.user_id;
+    {expandedGrades === student.id && (
+  <>
+    <List dense>
+      {student.submissions && student.submissions.length > 0 ? (
+        student.submissions.map((sub) => {
+          const { label, color } = getStatusLabel(sub);
+          const gradeIsNull = sub.grade === null || sub.grade === undefined;
+          const viewButtonText = sub.type === "test" ? "Show Report" : "Show Submission";
+          const studentId = student.user?.id ?? student.user_id;
 
+          const viewLink =
+            sub.type === "test"
+              ? `/TeacherDashboard/test/${sub.item_id}/student/${studentId}/report`
+              : `/TeacherDashboard/assignment/${sub.item_id}/submission/${studentId}`;
 
-const viewLink =
-  sub.type === "test"
-    ? `/TeacherDashboard/test/${sub.item_id}/student/${studentId}/report`
-    : `/TeacherDashboard/assignment/${sub.item_id}/submission/${studentId}`;
+          return (
+            <ListItem
+              key={sub.id}
+              sx={{
+                mb: 1,
+                borderRadius: 1,
+                bgcolor: "#fefefe",
+                cursor: "default",
+                pointerEvents: "none",
+              }}
+            >
+              <ListItemText
+                primary={sub.name}
+                secondary={
+                  <>
+                    {gradeIsNull && (
+                      <Typography component="span" sx={{ fontStyle: "italic", color: "gray", mr: 1 }}>
+                        Not graded
+                      </Typography>
+                    )}
+                    <Typography component="span" sx={{ color, fontWeight: "600", mr: 1 }}>
+                      {label}
+                    </Typography>
+                    <Typography component="span" color="text.secondary">
+                      | Submitted at: {new Date(sub.submitted_at).toLocaleString()}
+                    </Typography>
+                  </>
+                }
+                sx={{ pointerEvents: "none" }}
+              />
 
-    return (
-      <ListItem
-        key={sub.id}
-        sx={{
-          mb: 1,
-          borderRadius: 1,
-          bgcolor: "#fefefe",
-          cursor: "default", // cursor normal pe rând
-          pointerEvents: "none", // dezactivează click pe rând
-        }}
-      >
-        <ListItemText
-          primary={sub.name}
-          secondary={
-            <>
-              {gradeIsNull && (
-                <Typography component="span" sx={{ fontStyle: "italic", color: "gray", mr: 1 }}>
-                  Not graded
-                </Typography>
-              )}
-              <Typography component="span" sx={{ color, fontWeight: "600", mr: 1 }}>
-                {label}
-              </Typography>
-              <Typography component="span" color="text.secondary">
-                | Submitted at: {new Date(sub.submitted_at).toLocaleString()}
-              </Typography>
-            </>
-          }
-          sx={{ pointerEvents: "none" }}
-        />
-
-      <Button
-        variant="outlined"
-        size="small"
-        component={RouterLink}
-        to={viewLink}
-        sx={{
-          textTransform: "none",
-          pointerEvents: "auto",
-          ":hover": { boxShadow: 2 },
-        }}
-      >
-        {viewButtonText}
-      </Button>
-
-      </ListItem>
-    );
-  })}
-</List>
-
-
-        </>
+              <Button
+                variant="outlined"
+                size="small"
+                component={RouterLink}
+                to={viewLink}
+                sx={{
+                  textTransform: "none",
+                  pointerEvents: "auto",
+                  ":hover": { boxShadow: 2 },
+                }}
+              >
+                {viewButtonText}
+              </Button>
+            </ListItem>
+          );
+        })
+      ) : (
+        <Typography
+          variant="body2"
+          sx={{ color: "gray", fontStyle: "italic", p: 1 }}
+        >
+          No submissions found.
+        </Typography>
       )}
+    </List>
+  </>
+)}
+
     </Paper>
   );
 }
@@ -200,8 +206,6 @@ export default function CoursePage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-
-  // Hooks must be at top-level
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentRequests, setEnrollmentRequests] = useState([]);
@@ -210,12 +214,17 @@ export default function CoursePage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 const [studentsWithGrades, setStudentsWithGrades] = useState([]);
 
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
 
-useEffect(() => {
-  const fetchCourseData = async () => {
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+const fetchCourseData = async () => {
+    setLoading(true);
     try {
-     const response = await fetchWithRefresh(`http://localhost:5000/course/${courseId}/full`);
+      const response = await fetchWithRefresh(`http://localhost:5000/course/${courseId}/full`);
       if (!response.ok) throw new Error("Failed to fetch course data");
       const data = await response.json();
       setCourseData(data);
@@ -229,13 +238,11 @@ useEffect(() => {
 
   const fetchEnrollmentRequests = async (selectedCourseId) => {
     try {
-      const token = localStorage.getItem("token");
-    
-const url = selectedCourseId 
-  ? `http://localhost:5000/enroll/pending?courseId=${selectedCourseId}`
-  : "http://localhost:5000/enroll/pending";
+      const url = selectedCourseId 
+        ? `http://localhost:5000/enroll/pending?courseId=${selectedCourseId}`
+        : "http://localhost:5000/enroll/pending";
 
-const response = await fetchWithRefresh(url);
+      const response = await fetchWithRefresh(url);
       if (!response.ok) throw new Error("Failed to fetch enrollment requests");
       const data = await response.json();
       setEnrollmentRequests(data);
@@ -245,44 +252,73 @@ const response = await fetchWithRefresh(url);
     }
   };
 
-  fetchCourseData();
-  fetchEnrollmentRequests(courseId); 
-  fetchStudentsWithGrades(courseId);
+  const fetchStudentsWithGrades = async (selectedCourseId) => {
+    try {
+      const response = await fetchWithRefresh(`http://localhost:5000/course/${selectedCourseId}/students-with-grades`);
+      if (!response.ok) throw new Error("Failed to fetch students with grades");
+      const data = await response.json();
+      setStudentsWithGrades(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-
-}, [courseId]);
-const fetchStudentsWithGrades = async (selectedCourseId) => {
-  try {
-    const token = localStorage.getItem("token");
-   const response = await fetchWithRefresh(`http://localhost:5000/course/${selectedCourseId}/students-with-grades`);
-
-    if (!response.ok) throw new Error("Failed to fetch students with grades");
-    const data = await response.json();
-    setStudentsWithGrades(data);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
+  
+  useEffect(() => {
+    if (courseId) {
+      fetchCourseData();
+      fetchEnrollmentRequests(courseId);
+      fetchStudentsWithGrades(courseId);
+    }
+  }, [courseId]);
 
 
   const toggleExpandGrades = (studentId) => {
     setExpandedGrades((prev) => (prev === studentId ? null : studentId));
   };
+const handleEnrollmentRequest = async (enrollmentId, status) => {
+  try {
+    const response = await fetchWithRefresh(`http://localhost:5000/enroll/${enrollmentId}`, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
 
-  const handleEnrollmentRequest = async (enrollmentId, status) => {
-    try {
-      const token = localStorage.getItem("token");
-   const response = await fetchWithRefresh(`http://localhost:5000/enroll/${enrollmentId}`, {
-  method: "PUT",
-  body: JSON.stringify({ status }),
-});
-      if (!response.ok) throw new Error("Failed to update enrollment");
+    if (response.ok) {
+      const result = await response.json();
+
+      setSnackbar({
+        open: true,
+        message: `Enrollment ${status === 'approved' ? 'approved' : 'rejected'} successfully.`,
+        severity: 'success',
+      });
+
       setEnrollmentRequests((prev) => prev.filter((req) => req.id !== enrollmentId));
-    } catch (error) {
-      alert(error.message);
+
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      const errorResult = await response.json();
+      setSnackbar({
+        open: true,
+        message: `Failed to update enrollment: ${errorResult.error || 'Unknown error'}`,
+        severity: 'error',
+      });
     }
-  };
+  } catch (error) {
+    console.error('Error updating enrollment:', error);
+    setSnackbar({
+      open: true,
+      message: 'Failed to update enrollment. Please try again later.',
+      severity: 'error',
+    });
+  }
+};
+
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -362,7 +398,7 @@ const goToAssignmentEdit = (assignmentId) => {
 
       
 
-      {/* Enrollment Requests */}
+
       <TabPanel value={tabValue} index={1}>
         {enrollmentRequests.length ? (
           <List>
@@ -406,7 +442,7 @@ const goToAssignmentEdit = (assignmentId) => {
           <Typography>No enrollment requests pending.</Typography>
         )}
       </TabPanel>
-{/* Assignments */}
+
 <TabPanel value={tabValue} index={2}>
   <Button
   variant="contained"
@@ -442,19 +478,21 @@ const goToAssignmentEdit = (assignmentId) => {
     goToTestEdit={goToTestEdit}
   />
 </TabPanel>
-
 <TabPanel value={tabValue} index={4}>
-  <Materials courseId={courseId} />
+  <Materials
+    courseId={courseId}
+    onRefreshCourseData={fetchCourseData} 
+  />
 </TabPanel>
 
 <TabPanel value={tabValue} index={5}>
   <Posts
     courseId={courseId}
+    onRefreshCourseData={fetchCourseData}  
   />
 </TabPanel>
 
 
-  {/* Edit Course Modal */}
   <Modal open={editModalOpen} onClose={handleCloseEditModal} aria-labelledby="edit-course-modal-title">
     <Box
       sx={{
@@ -472,12 +510,22 @@ const goToAssignmentEdit = (assignmentId) => {
       <Typography id="edit-course-modal-title" variant="h6" component="h2" mb={2}>
         Edit Course 
       </Typography>
-      {/* Add form inputs here to edit course details */}
+
       <Button onClick={handleCloseEditModal} variant="contained" fullWidth>
         Close
       </Button>
     </Box>
   </Modal>
+   <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                  {snackbar.message}
+                </Alert>
+              </Snackbar>
 </Box>
   );
 }

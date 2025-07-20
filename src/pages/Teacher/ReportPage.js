@@ -104,7 +104,7 @@ console.log(data);
     fetchSubmission();
   }, [testId, studentId]);
 
-  // Load answers for the submission
+
   useEffect(() => {
     if (!submission?.id) return;
     async function fetchAnswers() {
@@ -235,11 +235,11 @@ useEffect(() => {
   if (questionsWithAnswers.length && Object.keys(grades).length === 0) {
     const initial = {};
     questionsWithAnswers.forEach((q) => {
-      // Dacă există previous grade, folosim pe aia
+
       if (q.grade !== null && q.grade !== undefined) {
         initial[q.id] = parseFloat(q.grade);
       } else {
-        // Altfel, folosim expected grade
+
         const expected = parseFloat(q.expected_grade);
         if (!isNaN(expected)) {
           initial[q.id] = expected;
@@ -316,7 +316,7 @@ const handleSave = async () => {
 
     setSnackbar({ open: true, message: "Grade has been saved!", severity: "success" });
 
-    // Adaugă refresh cu un mic delay pentru UX
+
     setTimeout(() => {
       window.location.reload();
     }, 1000);
@@ -348,7 +348,7 @@ const handleSave = async () => {
 function getOptionStyles(isSelected, isCorrect) {
   if (isCorrect && isSelected) {
     return {
-      bgColor: "#388e3c", // verde închis
+      bgColor: "#388e3c", 
       borderColor: "#1b5e20",
       icon: "✅",
       color: "white",
@@ -357,7 +357,7 @@ function getOptionStyles(isSelected, isCorrect) {
   }
   if (isCorrect && !isSelected) {
     return {
-      bgColor: "#81c784", // verde pal
+      bgColor: "#81c784", 
       borderColor: "#4caf50",
       icon: null,
       color: "white",
@@ -366,14 +366,14 @@ function getOptionStyles(isSelected, isCorrect) {
   }
   if (!isCorrect && isSelected) {
     return {
-      bgColor: "#d32f2f", // roșu închis
+      bgColor: "#d32f2f",
       borderColor: "#b71c1c",
       icon: "❌",
       color: "black",
       fontWeight: "normal",
     };
   }
-  // Not selected & Wrong
+
   return {
     bgColor: "#e0e0e0",
     borderColor: "#9e9e9e",
@@ -383,7 +383,7 @@ function getOptionStyles(isSelected, isCorrect) {
   };
 }
 
-// Componentă pentru legendă, să fie reutilizabilă
+
 const LegendItem = ({ color, label }) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
     <Box sx={{ width: 24, height: 24, bgcolor: color, borderRadius: 1 }} />
@@ -502,7 +502,7 @@ const LegendItem = ({ color, label }) => (
     <Divider sx={{ my: 3 }} />
 
   <Box sx={{ p: 3, borderRadius: 3, backgroundColor: "#fff", boxShadow: 2 }}>
-  {/* Task Description */}
+
   <Typography variant="h6" fontWeight="bold" gutterBottom>
     📝 Task {currentQuestionIndex + 1}:
   </Typography>
@@ -521,21 +521,21 @@ const LegendItem = ({ color, label }) => (
     🧮 Grade for this Question
   </Typography>
 
-  {/* Afișează valoarea auto-evaluată */}
+
   {currentQuestion.expected_grade !== null && (
     <Typography variant="body2" color="textSecondary" mb={1}>
       Auto-graded: <strong>{currentQuestion.expected_grade}</strong> / {currentQuestion.points || 10}
     </Typography>
   )}
 
-  {/* Afișează nota precedentă, dacă există */}
+
   {currentQuestion.grade !== undefined && currentQuestion.grade !== null && (
     <Typography variant="body2" color="textSecondary" mb={1}>
       Previous grade: <strong>{currentQuestion.grade}</strong> / {currentQuestion.points || 10}
     </Typography>
   )}
 
-  {/* TextField pentru nota nouă, editabilă și inițial goală */}
+
   
 <TextField
   type="number"
@@ -582,10 +582,10 @@ const LegendItem = ({ color, label }) => (
 
 <Divider sx={{ my: 2 }} />
 
-  {/* Dynamic View by Question Type */}
+
   {currentQuestion.category === "coding" && (
     <>
-      {/* Test Case Summary */}
+
      
        <Typography variant="subtitle1" fontWeight="medium" color="primary" gutterBottom>
   ✅ Test Case Summary
@@ -628,7 +628,6 @@ const LegendItem = ({ color, label }) => (
 
 
 
-      {/* Submitted Code */}
       <Card variant="outlined" sx={{ mt: 3, borderRadius: 3, boxShadow: 1, p: 2 }}>
         <Typography variant="h6" fontWeight="bold" gutterBottom>
           💻 Submitted Code
@@ -641,7 +640,7 @@ const LegendItem = ({ color, label }) => (
           options={{ readOnly: true, minimap: { enabled: false }, fontSize: 14 }}
         />
       </Card>
- {/* Anti-Cheating Metrics */}
+
 
     <CodeReplay testId={testId} questionId={currentQuestion.id} studentId={studentId} />
 
@@ -654,7 +653,7 @@ const LegendItem = ({ color, label }) => (
       ✅ Review Answers
     </Typography>
 
-    {/* Legendă */}
+
     <Box sx={{ mb: 4,mt :3, display: "flex", gap: 3, flexWrap: "wrap" }}>
       <LegendItem color="#388e3c" label="Selected & Correct" />
       <LegendItem color="#81c784" label="Correct but not selected" />
@@ -736,7 +735,7 @@ const LegendItem = ({ color, label }) => (
          open={snackbar.open}
          autoHideDuration={6000}
          onClose={handleCloseSnackbar}
-         anchorOrigin={{ vertical: "top", horizontal: "center" }} // Snackbar at the top
+         anchorOrigin={{ vertical: "top", horizontal: "center" }} 
        >
          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
            {snackbar.message}
